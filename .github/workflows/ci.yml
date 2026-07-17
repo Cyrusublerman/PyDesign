@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check .
+      - run: mypy
+      - run: pytest
+      - run: python scripts/check_architecture.py
+      - run: python -m pydesign check examples/hello_editorial --json
+      - run: python -m pydesign render-json examples/hello_editorial --output /tmp/hello-layout.json
+      - run: git diff --exit-code
+
+  offline-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e .
+      - run: python -m unittest discover -s tests -v
+      - run: python scripts/check_architecture.py
+      - run: python -m pydesign check examples/hello_editorial
+
+  gui-smoke:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y libegl1
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev,gui]'
+      - run: mypy --config-file mypy-gui.ini src/pydesign/gui/app.py
+      - run: pytest tests/test_gui_smoke.py

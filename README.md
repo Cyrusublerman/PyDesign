@@ -12,9 +12,11 @@ The product combines:
 
 ## Status
 
-The implementation-grade design baseline is locked. Runtime implementation has not started.
+The implementation-grade design baseline is locked. Stage 0 and the first source-to-page vertical slice are now implemented: typed physical units, a retained document model, validation, an immutable renderer-neutral display list, disposable worker evaluation, a headless CLI and a basic PySide6 code/canvas shell.
 
 Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md) and [implementation sequence](docs/design/11_implementation_sequence.md).
+
+See [implementation status](docs/implementation_status.md) for the exact completed/staged capability boundary.
 
 ## Locked direction
 
@@ -39,7 +41,32 @@ Verification spikes may replace an implementation adapter, but may not weaken th
 - Authoring, local help, proofing and export work without network access.
 - Accessibility and keyboard operation are designed into each vertical slice.
 
-## First implementation sequence
+## Run the initial build
+
+The headless core has no third-party runtime dependency:
+
+```bash
+python -m pip install -e .
+pydesign check examples/hello_editorial
+pydesign render-json examples/hello_editorial --output /tmp/hello-layout.json
+```
+
+Install the desktop shell separately:
+
+```bash
+python -m pip install -e '.[gui]'
+pydesign open examples/hello_editorial
+```
+
+The Stage 1 canvas labels text as a placeholder. It deliberately does not claim production typography before the locked ICU/HarfBuzz paragraph engine is implemented in Stage 3.
+
+Run the dependency-free local test suite with:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+## Implementation sequence
 
 1. Repository/tooling and architecture guardrails.
 2. Headless source-to-page model and serializable display list.

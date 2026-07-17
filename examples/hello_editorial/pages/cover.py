@@ -1,0 +1,29 @@
+from pydesign import BuildContext, Page, Rectangle, TextFrame, mm, pt
+
+
+def page(_ctx: BuildContext) -> Page:
+    return Page(
+        id="cover",
+        size=(210 * mm, 297 * mm),
+        elements=[
+            Rectangle(
+                id="cover-accent",
+                frame=(18 * mm, 18 * mm, 5 * mm, 261 * mm),
+                fill="#e66f3d",
+            ),
+            TextFrame(
+                id="cover-title",
+                frame=(34 * mm, 34 * mm, 152 * mm, 90 * mm),
+                text="PYDESIGN\nVISIBLE PYTHON,\nPRINTED PAGES",
+                font_size=30 * pt,
+                colour="#18202a",
+            ),
+            TextFrame(
+                id="cover-deck",
+                frame=(35 * mm, 230 * mm, 120 * mm, 28 * mm),
+                text="An offline editorial studio built from readable Python.",
+                font_size=11 * pt,
+                colour="#46515d",
+            ),
+        ],
+    )

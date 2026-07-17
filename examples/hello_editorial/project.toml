@@ -1,0 +1,20 @@
+[project]
+format = 1
+name = "Hello Editorial"
+entrypoint = "document:build"
+default_profile = "screen"
+
+[python]
+requires = ">=3.12"
+
+[paths]
+assets = ["assets", "content", "fonts"]
+exports = "exports"
+
+[build]
+deterministic = true
+allow_system_fonts = false
+
+[profiles.screen]
+kind = "display-list"
+

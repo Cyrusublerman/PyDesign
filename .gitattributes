@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.icc binary
+*.icm binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+
