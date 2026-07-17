@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
+from itertools import pairwise
 from pathlib import Path
 
 try:
@@ -13,12 +14,19 @@ try:
 
     from pydesign.text import (
         FontChangedError,
+        FontRegistry,
+        FontRegistryError,
+        MissingGlyphError,
         ShapingError,
+        TextFrameSpec,
         compose_greedy,
+        flow_story,
+        grapheme_clusters,
         hyphenation_opportunities,
         line_break_opportunities,
         load_font_face,
         shape_text,
+        shape_with_fallback,
     )
 except ImportError:
     uharfbuzz = None  # type: ignore[assignment]
@@ -30,6 +38,7 @@ except ImportError:
 
 
 FONT = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+LATIN_FONT = Path("/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf")
 
 
 @unittest.skipUnless(uharfbuzz is not None and FONT.is_file(), "typography stack/font unavailable")
@@ -95,6 +104,72 @@ class TypographyTests(unittest.TestCase):
         self.assertIn('"glyphs"', output.getvalue())
         self.assertIn('"instance_sha256"', output.getvalue())
 
+    def test_project_registry_is_explicit_and_cannot_escape_project(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project_font = root / "font.ttf"
+            shutil.copyfile(FONT, project_font)
+            registry = FontRegistry(root)
+            registered = registry.register_project("body", "font.ttf")
+            self.assertEqual(registered.origin, "project")
+            self.assertEqual(registry.aliases, ("body",))
+            with self.assertRaises(FontRegistryError):
+                registry.register_project("outside", "../outside.ttf")
+
+    def test_system_registry_requires_the_exact_file_hash(self) -> None:
+        face = load_font_face(FONT)
+        registry = FontRegistry(FONT.parent)
+        with self.assertRaisesRegex(FontRegistryError, "fingerprint mismatch"):
+            registry.register_system("wrong", FONT, expected_sha256="0" * 64)
+        registered = registry.register_system(
+            "exact", FONT, expected_sha256=face.fingerprint.file_sha256
+        )
+        self.assertEqual(registered.face.fingerprint, face.fingerprint)
+
+    @unittest.skipUnless(LATIN_FONT.is_file(), "Lato fallback test font unavailable")
+    def test_fallback_selects_one_exact_font_per_grapheme_cluster(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copyfile(LATIN_FONT, root / "latin.ttf")
+            shutil.copyfile(FONT, root / "fallback.ttf")
+            registry = FontRegistry(root)
+            latin = registry.register_project("latin", "latin.ttf")
+            fallback = registry.register_project("fallback", "fallback.ttf")
+            text = "abc سَلام"
+            runs = shape_with_fallback(
+                registry,
+                text,
+                preferred="latin",
+                fallback=("fallback",),
+                font_size=12,
+                language="ar",
+                source_start=10,
+            )
+            fingerprints = {run.font.instance_sha256 for run in runs}
+            self.assertIn(latin.face.fingerprint.instance_sha256, fingerprints)
+            self.assertIn(fallback.face.fingerprint.instance_sha256, fingerprints)
+            self.assertEqual(runs[0].source_start, 10)
+            self.assertEqual(runs[-1].source_end, 10 + len(text))
+
+    def test_missing_cluster_reports_the_original_source_index(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copyfile(FONT, root / "font.ttf")
+            registry = FontRegistry(root)
+            registry.register_project("body", "font.ttf")
+            with self.assertRaises(MissingGlyphError) as caught:
+                shape_with_fallback(
+                    registry,
+                    "a\U0010ffff",
+                    preferred="body",
+                    font_size=12,
+                    source_start=20,
+                )
+            self.assertEqual(caught.exception.source_index, 21)
+
+    def test_grapheme_clusters_keep_combining_marks_with_their_base(self) -> None:
+        self.assertEqual(grapheme_clusters("a\u0301b"), ((0, 2), (2, 3)))
+
 
 @unittest.skipUnless(
     uharfbuzz is not None and icu is not None and FONT.is_file(),
@@ -123,6 +198,69 @@ class UnicodeCompositionTests(unittest.TestCase):
         self.assertEqual(layout.lines[0].source_start, 0)
         self.assertEqual(layout.lines[-1].source_end, len(layout.text))
         self.assertFalse(layout.overset)
+
+    def test_story_flows_across_columns_and_frames_with_global_source_ranges(self) -> None:
+        face = load_font_face(FONT)
+        text = "One two three four five six seven eight nine ten eleven twelve."
+        flow = flow_story(
+            face,
+            text,
+            (
+                TextFrameSpec("first", width=150, height=24, columns=2, gutter=10),
+                TextFrameSpec("second", width=70, height=48),
+            ),
+            font_size=12,
+            leading=12,
+            language="en_US",
+            hyphenate=False,
+        )
+        lines = [
+            positioned.line
+            for frame in flow.frames
+            for column in frame.columns
+            for positioned in column.lines
+        ]
+        self.assertGreater(len(lines), 2)
+        self.assertEqual(lines[0].source_start, 0)
+        self.assertTrue(
+            all(
+                previous.source_end == current.source_start for previous, current in pairwise(lines)
+            )
+        )
+        self.assertEqual(flow.overset_text, text[flow.source_end :])
+
+    def test_story_exposes_unplaced_overset_text(self) -> None:
+        face = load_font_face(FONT)
+        text = "This deliberately contains more copy than one short line can hold."
+        flow = flow_story(
+            face,
+            text,
+            (TextFrameSpec("only", width=90, height=12),),
+            font_size=12,
+            leading=12,
+            language="en_US",
+            hyphenate=False,
+        )
+        self.assertTrue(flow.overset)
+        self.assertGreater(len(flow.overset_text), 0)
+
+
+class FlowValidationTests(unittest.TestCase):
+    def test_flow_rejects_duplicate_ids_and_impossible_gutters(self) -> None:
+        duplicate = (
+            TextFrameSpec("same", 100, 100),
+            TextFrameSpec("same", 100, 100),
+        )
+        with self.assertRaisesRegex(ValueError, "unique"):
+            flow_story(None, "", duplicate, font_size=12, leading=14)  # type: ignore[arg-type]
+        with self.assertRaisesRegex(ValueError, "no column width"):
+            flow_story(
+                None,  # type: ignore[arg-type]
+                "",
+                (TextFrameSpec("bad", 10, 100, columns=2, gutter=10),),
+                font_size=12,
+                leading=14,
+            )
 
 
 if __name__ == "__main__":

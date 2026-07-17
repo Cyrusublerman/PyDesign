@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import io
 import json
 import subprocess
@@ -62,6 +63,23 @@ class WorkerAndCliTests(unittest.TestCase):
             self.assertTrue(output.is_file())
             data = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(data["schema_version"], 1)
+
+    @unittest.skipUnless(
+        importlib.util.find_spec("reportlab") is not None
+        and importlib.util.find_spec("pikepdf") is not None,
+        "PDF export dependencies unavailable",
+    )
+    def test_cli_build_pdf_writes_verified_output_and_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_project(root)
+            output = root / "publication.pdf"
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                code = main(["build-pdf", str(root), "--output", str(output)])
+            self.assertEqual(code, 0, stdout.getvalue())
+            self.assertTrue(output.is_file())
+            self.assertTrue((root / "publication.pdf.manifest.json").is_file())
 
     def test_core_import_does_not_load_qt(self) -> None:
         process = subprocess.run(

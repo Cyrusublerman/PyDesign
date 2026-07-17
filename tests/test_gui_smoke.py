@@ -9,10 +9,12 @@ try:
     from PySide6.QtWidgets import QApplication
 
     from pydesign.gui.app import MainWindow, PageCanvas
+    from pydesign.gui.canvas import EditableBezierItem
 except ImportError:
     QApplication = None  # type: ignore[assignment,misc]
     MainWindow = None  # type: ignore[assignment,misc]
     PageCanvas = None  # type: ignore[assignment,misc]
+    EditableBezierItem = None  # type: ignore[assignment,misc]
 
 
 @unittest.skipUnless(
@@ -83,6 +85,12 @@ class GuiSmokeTests(unittest.TestCase):
         box.set_frame_size(40, 50)
         self.assertEqual(box.frame_points()[2:], (40.0, 50.0))
         self.assertIn("curve", canvas._object_items)
+        curve = canvas._object_items["curve"]
+        assert EditableBezierItem is not None
+        self.assertIsInstance(curve, EditableBezierItem)
+        assert isinstance(curve, EditableBezierItem)
+        curve.setSelected(True)
+        self.assertTrue(all(handle.isVisible() for handle in curve.handles))
 
 
 if __name__ == "__main__":

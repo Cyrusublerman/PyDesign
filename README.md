@@ -12,9 +12,11 @@ The product combines:
 
 ## Status
 
-The implementation-grade design baseline is locked. The repository now contains the Stage 0/1 vertical slice, the visible-source Stage 2 foundation, and the first real Stage 3 typography authority. Canvas moves, inspector geometry edits and rectangle creation produce readable Python transactions; exact OpenType font identities and HarfBuzz glyph runs are independently auditable.
+The implementation-grade design baseline is locked. The repository contains the Stage 0/1 vertical slice, a substantial visible-source Stage 2 foundation, Stage 3 typography authority modules and the first parity-gated Stage 4 vector PDF slice. Canvas geometry, rectangle/Bézier creation and cubic control-point edits produce readable Python transactions; exact OpenType identities, fallback choices, glyph runs and story source ranges are independently auditable.
 
 Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md) and [implementation sequence](docs/design/11_implementation_sequence.md).
+
+The [modularity assessment](docs/modularity_assessment.md) records current boundaries, hotspots and enforced dependency rules.
 
 See [implementation status](docs/implementation_status.md) for the exact completed/staged capability boundary.
 
@@ -58,7 +60,7 @@ python -m pip install -e '.[gui]'
 pydesign open examples/hello_editorial
 ```
 
-The desktop shell provides a multi-file Python sidebar/editor, isolated Run/Stop evaluation, last-good preview, page canvas selection, dragging and resize, a geometry/source inspector, reveal-in-Python, rectangle and four-point cubic Bézier drawing, source-aware expression choices, undo/redo and unsaved-source recovery. GUI-created document objects receive opaque stable `pd_…` IDs.
+The desktop shell provides a multi-file Python sidebar/editor, isolated Run/Stop evaluation, last-good preview, page canvas selection, dragging and resize, a geometry/source inspector, reveal-in-Python, rectangle and four-point cubic Bézier drawing/editing, source-aware expression choices, undo/redo, autosave recovery and persistent transaction crash recovery. GUI-created document objects receive opaque stable `pd_…` IDs.
 
 Install the typography authority stack to inspect fonts and shape real glyphs:
 
@@ -68,12 +70,21 @@ pydesign font-info /path/to/font.otf
 pydesign shape-text /path/to/font.otf 'office سلام' --size 12 --language en
 ```
 
-Add `.[unicode]` plus system ICU development files for ICU line boundaries and composition. The current page canvas still labels `TextFrame` operations as placeholders: glyph shaping, ICU/Pyphen break candidates and the greedy composer exist, but linked-frame flow, fallback, bidi itemisation, justification and outline canvas/PDF painting remain staged work.
+Add `.[unicode]` plus system ICU development files for ICU line/grapheme boundaries and composition. Explicit font registration, cluster-safe fallback, greedy composition, columns, linked frames and overset tracking exist as renderer-neutral APIs. The current page canvas still labels `TextFrame` operations as placeholders: full bidi itemisation, optimised justification, fallback-aware paragraph composition and outline canvas/PDF painting remain staged work.
+
+Install the first vector PDF adapter separately:
+
+```bash
+python -m pip install -e '.[pdf]'
+pydesign build-pdf /path/to/vector-project --output /tmp/publication.pdf
+```
+
+`build-pdf` writes a deterministic PDF plus SHA-256 manifest, reopens page geometry with pikepdf and atomically publishes only after validation. It intentionally refuses `text_placeholder` operations until the shared shaped-glyph embedding path is complete.
 
 Run verification with:
 
 ```bash
-python -m pip install -e '.[dev,typography]'
+python -m pip install -e '.[dev,typography,pdf]'
 ruff check .
 mypy
 pytest

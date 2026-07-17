@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import base64
-import difflib
 import math
 import re
 import secrets
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 
 import libcst as cst
 
@@ -17,50 +14,24 @@ from pydesign.source.analysis import (
     Declaration,
     OwnershipKind,
     build_source_index,
-    quantity_parts,
 )
-
-type Frame = tuple[float, float, float, float]
-type Point = tuple[float, float]
-type FrameStrategy = Literal["safe", "adjust", "detach", "edit_shared"]
-
-_UNIT_POINTS = {
-    "pt": 1.0,
-    "inch": 72.0,
-    "pc": 12.0,
-    "mm": 72.0 / 25.4,
-    "cm": 72.0 / 2.54,
-    "px": 72.0 / 96.0,
-}
-
-
-class SourceRewriteError(ValueError):
-    pass
-
-
-@dataclass(frozen=True, slots=True)
-class SourceEditPlan:
-    path: Path
-    before: str
-    after: str
-    description: str
-    object_id: str
-    property_name: str
-    strategy: str
-
-    @property
-    def changed(self) -> bool:
-        return self.before != self.after
-
-    def unified_diff(self) -> str:
-        return "".join(
-            difflib.unified_diff(
-                self.before.splitlines(keepends=True),
-                self.after.splitlines(keepends=True),
-                fromfile=str(self.path),
-                tofile=str(self.path),
-            )
-        )
+from pydesign.source.cst_helpers import (
+    adjust_scalar,
+    call_id,
+    ensure_pydesign_imports,
+    frame_expression,
+    is_direct_numeric,
+    point_code,
+    replace_scalar,
+    scalar_points,
+)
+from pydesign.source.edits import (
+    Frame,
+    FrameStrategy,
+    Point,
+    SourceEditPlan,
+    SourceRewriteError,
+)
 
 
 def frame_edit_options(declaration: Declaration) -> tuple[FrameStrategy, ...]:
@@ -178,10 +149,10 @@ def plan_bezier_insertion(
     expression = cst.parse_expression(
         "BezierPath("
         f"id={object_id!r}, commands=("
-        f"MoveTo({_point_code(start[0])}, {_point_code(start[1])}), "
-        f"CurveTo({_point_code(control_1[0])}, {_point_code(control_1[1])}, "
-        f"{_point_code(control_2[0])}, {_point_code(control_2[1])}, "
-        f"{_point_code(end[0])}, {_point_code(end[1])})), "
+        f"MoveTo({point_code(start[0])}, {point_code(start[1])}), "
+        f"CurveTo({point_code(control_1[0])}, {point_code(control_1[1])}, "
+        f"{point_code(control_2[0])}, {point_code(control_2[1])}, "
+        f"{point_code(end[0])}, {point_code(end[1])})), "
         f"fill=None, stroke={stroke!r})"
     )
     transformer = _ElementInsertionTransformer(page_id, expression)
@@ -220,7 +191,7 @@ class _FrameTransformer(cst.CSTTransformer):
         self._shared_updates = shared_updates
 
     def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.Call:
-        if _call_id(original_node) != self.object_id:
+        if call_id(original_node) != self.object_id:
             return updated_node
         arguments = list(updated_node.args)
         for index, argument in enumerate(arguments):
@@ -233,7 +204,7 @@ class _FrameTransformer(cst.CSTTransformer):
             return updated_node.with_changes(args=arguments)
         if self.strategy != "detach":
             raise SourceRewriteError(f"{self.object_id!r} has no explicit frame property")
-        arguments.append(cst.Arg(keyword=cst.Name("frame"), value=_frame_expression(self.desired)))
+        arguments.append(cst.Arg(keyword=cst.Name("frame"), value=frame_expression(self.desired)))
         self.requires_pt = True
         self.changed = True
         return updated_node.with_changes(args=arguments)
@@ -245,14 +216,14 @@ class _FrameTransformer(cst.CSTTransformer):
         if not isinstance(target, cst.Name) or target.value not in self._shared_updates:
             return updated_node
         delta = self._shared_updates[target.value]
-        current = _scalar_points(original_node.value)
+        current = scalar_points(original_node.value)
         value = (
-            _replace_scalar(original_node.value, current + delta)
+            replace_scalar(original_node.value, current + delta)
             if current is not None
-            else _adjust_scalar(original_node.value, delta, detach=False)
+            else adjust_scalar(original_node.value, delta, detach=False)
         )
         self.changed = True
-        if not _is_direct_numeric(value):
+        if not is_direct_numeric(value):
             self.requires_pt = True
         return updated_node.with_changes(value=value)
 
@@ -260,7 +231,7 @@ class _FrameTransformer(cst.CSTTransformer):
         if not isinstance(value, (cst.Tuple, cst.List)) or len(value.elements) != 4:
             if self.strategy == "detach":
                 self.requires_pt = True
-                return _frame_expression(self.desired)
+                return frame_expression(self.desired)
             raise SourceRewriteError("frame must be a four-component tuple/list for this strategy")
         elements = list(value.elements)
         for index, element in enumerate(elements):
@@ -270,16 +241,16 @@ class _FrameTransformer(cst.CSTTransformer):
                 continue
             delta = self.desired[index] - self.previous[index]
             if self.strategy == "safe":
-                replacement = _replace_scalar(element.value, self.desired[index])
+                replacement = replace_scalar(element.value, self.desired[index])
             elif self.strategy == "edit_shared":
                 if isinstance(element.value, cst.Name):
                     continue
-                replacement = _replace_scalar(element.value, self.desired[index])
+                replacement = replace_scalar(element.value, self.desired[index])
             elif self.strategy == "adjust":
-                replacement = _adjust_scalar(element.value, delta, detach=False)
+                replacement = adjust_scalar(element.value, delta, detach=False)
                 self.requires_pt = True
             else:
-                replacement = _adjust_scalar(element.value, self.desired[index], detach=True)
+                replacement = adjust_scalar(element.value, self.desired[index], detach=True)
                 self.requires_pt = True
             elements[index] = element.with_changes(value=replacement)
         return value.with_changes(elements=elements)
@@ -294,13 +265,13 @@ class _RectangleInsertionTransformer(cst.CSTTransformer):
         self.changed = False
 
     def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.Call:
-        if _call_id(original_node) != self.page_id:
+        if call_id(original_node) != self.page_id:
             return updated_node
         expression = cst.parse_expression(
             "Rectangle("
             f"id={self.object_id!r}, "
-            f"frame=({_point_code(self.frame[0])}, {_point_code(self.frame[1])}, "
-            f"{_point_code(self.frame[2])}, {_point_code(self.frame[3])}), "
+            f"frame=({point_code(self.frame[0])}, {point_code(self.frame[1])}, "
+            f"{point_code(self.frame[2])}, {point_code(self.frame[3])}), "
             f"fill={self.fill!r})"
         )
         arguments = list(updated_node.args)
@@ -332,7 +303,7 @@ class _ElementInsertionTransformer(cst.CSTTransformer):
         self.changed = False
 
     def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.Call:
-        if _call_id(original_node) != self.page_id:
+        if call_id(original_node) != self.page_id:
             return updated_node
         arguments = list(updated_node.args)
         for index, argument in enumerate(arguments):
@@ -363,7 +334,7 @@ class _SharedUpdateVisitor(cst.CSTVisitor):
         self.updates: dict[str, float] = {}
 
     def visit_Call(self, node: cst.Call) -> None:
-        if _call_id(node) != self.object_id:
+        if call_id(node) != self.object_id:
             return
         for argument in node.args:
             if argument.keyword is None or argument.keyword.value != "frame":
@@ -391,147 +362,6 @@ def _collect_shared_updates(
     if not visitor.updates:
         raise SourceRewriteError("no changed frame component is controlled by a shared name")
     return visitor.updates
-
-
-def ensure_pydesign_imports(module: cst.Module, names: set[str]) -> cst.Module:
-    transformer = _EnsureImportsTransformer(names)
-    updated = module.visit(transformer)
-    if not transformer.missing:
-        return updated
-    import_line = cst.SimpleStatementLine(
-        [
-            cst.ImportFrom(
-                module=cst.Name("pydesign"),
-                names=[cst.ImportAlias(cst.Name(name)) for name in sorted(transformer.missing)],
-            )
-        ]
-    )
-    body = list(updated.body)
-    insertion = 0
-    while insertion < len(body) and _is_header_line(body[insertion]):
-        insertion += 1
-    body.insert(insertion, import_line)
-    return updated.with_changes(body=body)
-
-
-class _EnsureImportsTransformer(cst.CSTTransformer):
-    def __init__(self, names: set[str]) -> None:
-        self.missing = set(names)
-
-    def leave_ImportFrom(
-        self, original_node: cst.ImportFrom, updated_node: cst.ImportFrom
-    ) -> cst.ImportFrom:
-        if (
-            not isinstance(original_node.module, cst.Name)
-            or original_node.module.value != "pydesign"
-        ):
-            return updated_node
-        if isinstance(original_node.names, cst.ImportStar):
-            self.missing.clear()
-            return updated_node
-        if isinstance(updated_node.names, cst.ImportStar):
-            self.missing.clear()
-            return updated_node
-        aliases = list(updated_node.names)
-        existing = {alias.evaluated_name for alias in original_node.names}
-        additions = sorted(self.missing - existing)
-        self.missing.difference_update(existing)
-        if not additions:
-            return updated_node
-        aliases.extend(cst.ImportAlias(cst.Name(name)) for name in additions)
-        self.missing.difference_update(additions)
-        return updated_node.with_changes(names=aliases)
-
-
-def _replace_scalar(node: cst.BaseExpression, desired_points: float) -> cst.BaseExpression:
-    if isinstance(node, (cst.Integer, cst.Float)):
-        return _number_expression(desired_points)
-    parts = quantity_parts(node)
-    if parts is not None:
-        _, unit = parts
-        value = desired_points / _UNIT_POINTS[unit]
-        return cst.parse_expression(f"{_number_code(value)} * {unit}")
-    raise SourceRewriteError(
-        f"safe replacement is unavailable for {cst.Module([]).code_for_node(node)!r}"
-    )
-
-
-def _scalar_points(node: cst.BaseExpression) -> float | None:
-    if isinstance(node, cst.Integer):
-        return float(int(node.value, 0))
-    if isinstance(node, cst.Float):
-        return float(node.value)
-    parts = quantity_parts(node)
-    if parts is None:
-        return None
-    number, unit = parts
-    if isinstance(number, cst.UnaryOperation) and isinstance(number.operator, cst.Minus):
-        if isinstance(number.expression, cst.Integer):
-            numeric = -float(int(number.expression.value, 0))
-        elif isinstance(number.expression, cst.Float):
-            numeric = -float(number.expression.value)
-        else:
-            return None
-    elif isinstance(number, cst.Integer):
-        numeric = float(int(number.value, 0))
-    elif isinstance(number, cst.Float):
-        numeric = float(number.value)
-    else:
-        return None
-    return numeric * _UNIT_POINTS[unit]
-
-
-def _adjust_scalar(node: cst.BaseExpression, value: float, *, detach: bool) -> cst.BaseExpression:
-    if detach:
-        return cst.parse_expression(_point_code(value))
-    if math.isclose(value, 0.0, abs_tol=1e-12):
-        return node
-    original = cst.Module([]).code_for_node(node)
-    operator = "+" if value >= 0 else "-"
-    return cst.parse_expression(f"({original}) {operator} {_point_code(abs(value))}")
-
-
-def _frame_expression(frame: Frame) -> cst.BaseExpression:
-    return cst.parse_expression(f"({', '.join(_point_code(value) for value in frame)})")
-
-
-def _number_expression(value: float) -> cst.BaseExpression:
-    return cst.parse_expression(_number_code(value))
-
-
-def _number_code(value: float) -> str:
-    if math.isclose(value, round(value), abs_tol=1e-9):
-        return str(round(value))
-    return format(value, ".8g")
-
-
-def _point_code(value: float) -> str:
-    return f"{_number_code(value)} * pt"
-
-
-def _is_direct_numeric(value: cst.BaseExpression) -> bool:
-    return isinstance(value, (cst.Integer, cst.Float)) or quantity_parts(value) is not None
-
-
-def _call_id(node: cst.Call) -> str | None:
-    for argument in node.args:
-        if (
-            argument.keyword is not None
-            and argument.keyword.value == "id"
-            and isinstance(argument.value, cst.SimpleString)
-        ):
-            value = argument.value.evaluated_value
-            return value if isinstance(value, str) else None
-    return None
-
-
-def _is_header_line(node: cst.CSTNode) -> bool:
-    if not isinstance(node, cst.SimpleStatementLine) or not node.body:
-        return False
-    statement = node.body[0]
-    if isinstance(statement, cst.Expr) and isinstance(statement.value, cst.SimpleString):
-        return True
-    return isinstance(statement, (cst.Import, cst.ImportFrom))
 
 
 _ID_SANITIZE = re.compile(r"[^a-z0-9]+")

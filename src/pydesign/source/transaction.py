@@ -9,7 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
-from pydesign.source.rewrite import SourceEditPlan
+from pydesign.source.edits import SourceEditPlan
+from pydesign.source.journal import PendingSourceTransaction, discover_project_root
 
 
 class SourceTransactionError(RuntimeError):
@@ -72,12 +73,16 @@ class SourceTransaction:
         )
 
 
-def apply_source_edit(plan: SourceEditPlan) -> AppliedSourceEdit:
-    apply_source_transaction(SourceTransaction.create((plan,)))
+def apply_source_edit(
+    plan: SourceEditPlan, *, project_root: str | Path | None = None
+) -> AppliedSourceEdit:
+    apply_source_transaction(SourceTransaction.create((plan,)), project_root=project_root)
     return AppliedSourceEdit(plan)
 
 
-def apply_source_transaction(transaction: SourceTransaction) -> SourceTransaction:
+def apply_source_transaction(
+    transaction: SourceTransaction, *, project_root: str | Path | None = None
+) -> SourceTransaction:
     """Apply a preflighted transaction and return its byte-exact inverse."""
 
     for plan in transaction.plans:
@@ -89,6 +94,19 @@ def apply_source_transaction(transaction: SourceTransaction) -> SourceTransactio
             raise SourceTransactionError(
                 f"source changed after the edit was planned: {plan.path}; re-run the operation"
             )
+
+    root = (
+        Path(project_root).expanduser().resolve()
+        if project_root is not None
+        else discover_project_root(transaction.plans)
+    )
+    journal = PendingSourceTransaction.prepare(root, transaction.description, transaction.plans)
+    try:
+        journal.write()
+    except OSError as error:
+        raise SourceTransactionError(
+            f"cannot create source transaction journal: {error}"
+        ) from error
 
     written: list[SourceEditPlan] = []
     try:
@@ -105,7 +123,10 @@ def apply_source_transaction(transaction: SourceTransaction) -> SourceTransactio
         detail = f"source transaction failed and was rolled back: {error}"
         if rollback_failures:
             detail += "; rollback also failed for " + ", ".join(rollback_failures)
+        else:
+            journal.discard()
         raise SourceTransactionError(detail) from error
+    journal.discard()
     return transaction.undo_transaction()
 
 

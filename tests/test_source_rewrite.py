@@ -15,10 +15,12 @@ from pydesign.source import (
     SourceTransactionError,
     apply_source_edit,
     apply_source_transaction,
+    bezier_edit_options,
     build_source_index,
     frame_edit_options,
     new_gui_id,
     plan_bezier_insertion,
+    plan_bezier_update,
     plan_frame_update,
     plan_rectangle_insertion,
 )
@@ -175,6 +177,52 @@ class SourceRewriteTests(unittest.TestCase):
             cst.parse_module(plan.after)
             write_source(root, plan.after)
             self.assertEqual(build_source_index(root).require("pd_curve").constructor, "BezierPath")
+
+    def test_bezier_control_edit_preserves_units_and_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = (
+                "from pydesign import BezierPath, CurveTo, MoveTo, mm\n"
+                "BezierPath(id='curve', commands=(\n"
+                "    MoveTo(10 * mm, 20 * mm),\n"
+                "    CurveTo(30 * mm, 5 * mm, 60 * mm, 80 * mm, 90 * mm, 20 * mm),\n"
+                "))  # authored curve\n"
+            )
+            write_source(root, source)
+            previous = tuple(
+                (x * mm.points, y * mm.points) for x, y in ((10, 20), (30, 5), (60, 80), (90, 20))
+            )
+            desired = (previous[0], (35 * mm.points, 8 * mm.points), previous[2], previous[3])
+            self.assertEqual(bezier_edit_options(root, "curve"), ("safe", "adjust", "detach"))
+            plan = plan_bezier_update(
+                root, "curve", previous=previous, desired=desired, strategy="safe"
+            )
+            self.assertIn("CurveTo(35 * mm, 8 * mm", plan.after)
+            self.assertIn("# authored curve", plan.after)
+            cst.parse_module(plan.after)
+
+    def test_computed_bezier_coordinate_requires_adjust_or_detach(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_source(
+                root,
+                "from pydesign import BezierPath, CurveTo, MoveTo, mm\n"
+                "base = 10 * mm\n"
+                "BezierPath(id='curve', commands=(MoveTo(base, 20 * mm), "
+                "CurveTo(30 * mm, 5 * mm, 60 * mm, 80 * mm, 90 * mm, 20 * mm)))\n",
+            )
+            previous = tuple(
+                (x * mm.points, y * mm.points) for x, y in ((10, 20), (30, 5), (60, 80), (90, 20))
+            )
+            desired = ((12 * mm.points, previous[0][1]), *previous[1:])
+            self.assertEqual(bezier_edit_options(root, "curve"), ("adjust", "detach"))
+            with self.assertRaises(SourceRewriteError):
+                plan_bezier_update(root, "curve", previous=previous, desired=desired)
+            plan = plan_bezier_update(
+                root, "curve", previous=previous, desired=desired, strategy="adjust"
+            )
+            self.assertIn("base", plan.after)
+            self.assertIn("pt", plan.after)
 
     def test_transaction_rejects_external_change(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

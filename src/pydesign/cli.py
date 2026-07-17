@@ -28,6 +28,13 @@ def build_parser() -> argparse.ArgumentParser:
     _project_arguments(render)
     render.add_argument("--output", type=Path, required=True)
 
+    build_pdf = subcommands.add_parser(
+        "build-pdf", help="write a parity-gated vector PDF and build manifest"
+    )
+    _project_arguments(build_pdf)
+    build_pdf.add_argument("--output", type=Path, required=True)
+    build_pdf.add_argument("--manifest", type=Path, default=None)
+
     open_command = subcommands.add_parser("open", help="open the desktop application")
     open_command.add_argument("project", type=Path, nargs="?", default=None)
 
@@ -83,6 +90,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         _atomic_json_write(args.output, result.layout)
         print(f"wrote {args.output}")
         return 0
+    if args.command == "build-pdf":
+        if not result.ok or result.layout is None:
+            _print_human_result(result.response, result.stderr)
+            return 2
+        return _build_pdf(result.layout, args.output, args.manifest)
     raise AssertionError(f"unhandled command {args.command}")
 
 
@@ -138,6 +150,24 @@ def _open_gui(project: Path | None) -> int:
         print(f"Details: {error}")
         return 3
     return run(project)
+
+
+def _build_pdf(layout: dict[str, Any], output: Path, manifest: Path | None) -> int:
+    try:
+        from pydesign.pdf import PdfExportError, export_layout_pdf
+    except ImportError as error:
+        print("PDF dependencies are unavailable. Install with: pip install 'pydesign[pdf]'")
+        print(f"Details: {error}")
+        return 3
+    try:
+        result = export_layout_pdf(layout, output, manifest_path=manifest)
+    except (OSError, PdfExportError) as error:
+        print(f"ERROR: {error}")
+        return 2
+    manifest_output = manifest or output.with_name(f"{output.name}.manifest.json")
+    print(f"wrote {output}")
+    print(f"wrote {manifest_output} ({result.pdf_sha256[:12]})")
+    return 0
 
 
 def _run_typography_command(args: argparse.Namespace) -> int:

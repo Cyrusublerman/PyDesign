@@ -33,6 +33,10 @@ typography = [
   "uharfbuzz>=0.51,<1",
 ]
 unicode = ["PyICU>=2.15,<3"]
+pdf = [
+  "pikepdf>=10,<11",
+  "reportlab>=4.4,<5",
+]
 dev = [
   "build>=1.2",
   "mypy>=1.14",
@@ -74,7 +78,7 @@ module = ["pydesign.gui.*"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = ["fontTools.*", "uharfbuzz"]
+module = ["fontTools.*", "pikepdf", "reportlab.*", "uharfbuzz"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

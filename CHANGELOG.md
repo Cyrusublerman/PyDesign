@@ -14,3 +14,8 @@ All notable changes will be documented here. PyDesign follows Semantic Versionin
 - Exact OpenType font fingerprints and metadata, variable-instance validation and embedding permissions.
 - HarfBuzz positioned glyph runs, ICU line-boundary adapter, Pyphen candidates and greedy composition foundation.
 - `font-info` and `shape-text` audit commands plus dedicated GUI and typography CI jobs.
+- Persistent source transaction journals and conservative crash recovery.
+- Editable cubic Bézier start/control/end handles backed by visible Python rewrites.
+- Explicit exact-hash font registry, grapheme-safe fallback and linked frame/column flow.
+- Deterministic vector PDF export with pikepdf inspection, SHA-256 manifest and CLI/CI coverage.
+- Enforced module budgets, dependency-cycle checks and split GUI/source/PDF responsibility seams.
