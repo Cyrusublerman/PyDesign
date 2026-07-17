@@ -1,57 +1,57 @@
 # PyDesign
 
-PyDesign is the intended implementation repository for an entirely offline, Python-native editorial layout studio.
+PyDesign is an entirely offline, Python-native editorial layout studio being designed for professional typography, computational composition and deterministic PDF production.
 
 The product combines:
 
 - an IDE-style Python source editor;
 - a zoomable page and spread canvas;
-- direct manipulation of frames, shapes and Bézier paths;
-- professional typography, grids, guides, pages and layers;
-- deterministic PDF export and locally rendered PDF proofing;
-- explicit synchronisation between source-controlled values and visual overrides.
+- direct manipulation that creates inspectable Python source transactions;
+- professional typography, grids, guides, pages, layers, vector paths and colour;
+- deterministic PDF/PDF-X export and locally rendered proofing.
 
 ## Status
 
-Design and architecture specification. Runtime implementation has not started.
+The implementation-grade design baseline is locked. Runtime implementation has not started.
 
-The initial implementation direction is:
+Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md) and [implementation sequence](docs/design/11_implementation_sequence.md).
 
-- Python;
-- PySide6 and Qt Graphics View;
-- a controlled Python document language;
-- a retained semantic document model;
+## Locked direction
+
+- CPython 3.12+ and PySide6/Qt Widgets;
+- visible multi-file Python projects;
+- LibCST-backed GUI-to-source transactions;
+- retained semantic model and immutable shared layout/display list;
 - isolated local evaluation workers;
-- a shared layout result used by the interactive and PDF renderers;
-- FontTools and HarfBuzz-oriented typography;
-- ReportLab and Flat benchmarking for PDF output;
+- ICU, HarfBuzz, FreeType, FontTools and Pyphen typography under a PyDesign paragraph composer;
+- a project-owned PDF adapter, initially using ReportLab with pikepdf inspection;
 - Poppler-based local PDF proofing and comparison.
 
-These technologies remain subject to documented spikes and adoption decisions.
+Verification spikes may replace an implementation adapter, but may not weaken the locked source, layout, typography or export contracts without an Architecture Decision Record.
 
 ## Product principles
 
-- Entirely offline authoring, preview and export.
-- The semantic document model is authoritative; widget state is not.
-- Visual edits never silently destroy Python expressions.
-- Every editable property exposes whether it is controlled by code, an expression, an override, a constraint or derived layout.
-- Failed or cancelled rendering never blocks source editing or destroys the last good preview.
-- Canvas and exported PDF can be compared locally.
-- Accessibility and keyboard operation are designed in from the first vertical slice.
+- Authored document truth is visible Python source and project assets.
+- GUI edits never silently destroy expressions or hide canonical overrides.
+- Every editable property exposes its source form, owner, inheritance and derivation.
+- One positioned layout result feeds both canvas and PDF.
+- Failed/cancelled rendering never blocks source editing or destroys the last good preview.
+- Authoring, local help, proofing and export work without network access.
+- Accessibility and keyboard operation are designed into each vertical slice.
 
-## Planned first vertical slice
+## First implementation sequence
 
-1. PySide6 split-pane application shell.
-2. Python editor, Run/Stop and revision-aware diagnostics.
-3. One physical-size page in a QGraphicsScene canvas.
-4. Stable-ID shapes, text and image frames.
-5. Move, resize, selection, inspector and undo.
-6. Safe visual overrides.
-7. PDF export from the same layout result.
-8. Local PDF raster proof and preview comparison.
+1. Repository/tooling and architecture guardrails.
+2. Headless source-to-page model and serializable display list.
+3. PySide6 code/canvas shell with isolated evaluation.
+4. LibCST-backed visible GUI edits and recovery.
+5. Typography authority and identical glyph-run rendering.
+6. PDF parity and Poppler proofing.
+7. Editorial layout, advanced graphics/colour and print production.
 
 ## Repository policy
 
-The detailed project knowledge, research, architecture, interface specification and canonical work plan are maintained in the associated PKL repository. This repository will contain executable source, tests, fixtures, packaging and developer documentation.
+Research and project knowledge are maintained in the associated PKL repository. Normative implementation design is versioned here beside source, tests, fixtures, packaging and developer documentation.
 
-A licence will be added only after the intended distribution and dependency-licence compatibility are approved.
+The design baseline selects MPL-2.0 for PyDesign source; the licence file and third-party notices are Stage 0 deliverables.
+
