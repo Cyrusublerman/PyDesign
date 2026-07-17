@@ -71,7 +71,7 @@ This is the compact register of decisions that implementation may rely upon.
 | D-060 | Extension points use Python entry points and project-local modules. Plug-ins run with the user project’s trust level and declare API compatibility and capabilities. |
 | D-061 | No network is required or contacted by default. There is no telemetry. Update checking and network-capable plug-ins require explicit opt-in. |
 | D-062 | Headless build, export, preflight and proof are available through a `pydesign` CLI and the same core packages used by the GUI. |
-| D-063 | PyDesign source is intended for MPL-2.0 release. User source, assets and generated output remain the user’s property. Dependency licences are checked in CI and release review. |
+| D-063 | PyDesign source will be released under MPL-2.0. User source, assets and generated output remain the user’s property. Dependency licences are checked in CI and release review. |
 | D-064 | Supported desktop targets are current Windows, macOS and mainstream Linux distributions; exact minimum OS versions are stated per release. |
 
 ## Verification spikes that do not reopen product decisions
@@ -83,4 +83,3 @@ This is the compact register of decisions that implementation may rely upon.
 5. Benchmark QGraphicsView with outline glyph caches and thousands of elements; switch viewport implementation without changing interaction contracts if necessary.
 
 Failures in these spikes may change an implementation component through an ADR, but not the visible-source, shared-layout, typographic or export semantics.
-

@@ -94,7 +94,7 @@ PyDesign follows semantic versioning once the public API reaches 1.0. Project fo
 
 ## Licence policy
 
-- PyDesign’s intended source licence is MPL-2.0.
+- PyDesign source is licensed under MPL-2.0 from the first code-bearing release.
 - User projects and exported artefacts receive no licence claim from PyDesign.
 - Bundled examples/assets/fonts state their own licences.
 - Dependencies must permit the chosen distribution model and offline bundling.
@@ -111,4 +111,3 @@ The repository requires formatting, typing, tests, changelog fragment for user-v
 ## Data portability
 
 A valid project can be built from the command line without user preferences/database state. Package-for-output captures all lawful dependencies. Settings have documented text formats and migrations. Users can uninstall PyDesign without losing the ability to read their source/assets.
-

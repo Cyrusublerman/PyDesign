@@ -8,7 +8,7 @@ The product combines:
 - a zoomable page and spread canvas;
 - direct manipulation that creates inspectable Python source transactions;
 - professional typography, grids, guides, pages, layers, vector paths and colour;
-- deterministic PDF/PDF-X export and locally rendered proofing.
+- deterministic PDF/PDF/X export and locally rendered proofing.
 
 ## Status
 
@@ -54,4 +54,3 @@ Verification spikes may replace an implementation adapter, but may not weaken th
 Research and project knowledge are maintained in the associated PKL repository. Normative implementation design is versioned here beside source, tests, fixtures, packaging and developer documentation.
 
 The design baseline selects MPL-2.0 for PyDesign source; the licence file and third-party notices are Stage 0 deliverables.
-
