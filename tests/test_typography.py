@@ -38,7 +38,6 @@ except ImportError:
 
 
 FONT = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-LATIN_FONT = Path("/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf")
 
 
 @unittest.skipUnless(uharfbuzz is not None and FONT.is_file(), "typography stack/font unavailable")
@@ -126,11 +125,19 @@ class TypographyTests(unittest.TestCase):
         )
         self.assertEqual(registered.face.fingerprint, face.fingerprint)
 
-    @unittest.skipUnless(LATIN_FONT.is_file(), "Lato fallback test font unavailable")
     def test_fallback_selects_one_exact_font_per_grapheme_cluster(self) -> None:
+        from fontTools.subset import Options, Subsetter
+        from fontTools.ttLib import TTFont
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            shutil.copyfile(LATIN_FONT, root / "latin.ttf")
+            latin_path = root / "latin.ttf"
+            latin_font = TTFont(FONT)
+            subsetter = Subsetter(options=Options())
+            subsetter.populate(unicodes=range(0x20, 0x7F))
+            subsetter.subset(latin_font)
+            latin_font.save(latin_path)
+            latin_font.close()
             shutil.copyfile(FONT, root / "fallback.ttf")
             registry = FontRegistry(root)
             latin = registry.register_project("latin", "latin.ttf")
