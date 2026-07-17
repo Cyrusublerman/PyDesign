@@ -12,7 +12,7 @@ The product combines:
 
 ## Status
 
-The implementation-grade design baseline is locked. Stage 0 and the first source-to-page vertical slice are now implemented: typed physical units, a retained document model, validation, an immutable renderer-neutral display list, disposable worker evaluation, a headless CLI and a basic PySide6 code/canvas shell.
+The implementation-grade design baseline is locked. The repository now contains the Stage 0/1 vertical slice, the visible-source Stage 2 foundation, and the first real Stage 3 typography authority. Canvas moves, inspector geometry edits and rectangle creation produce readable Python transactions; exact OpenType font identities and HarfBuzz glyph runs are independently auditable.
 
 Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md) and [implementation sequence](docs/design/11_implementation_sequence.md).
 
@@ -41,9 +41,9 @@ Verification spikes may replace an implementation adapter, but may not weaken th
 - Authoring, local help, proofing and export work without network access.
 - Accessibility and keyboard operation are designed into each vertical slice.
 
-## Run the initial build
+## Run the build
 
-The headless core has no third-party runtime dependency:
+Install the headless project/source core:
 
 ```bash
 python -m pip install -e .
@@ -58,12 +58,26 @@ python -m pip install -e '.[gui]'
 pydesign open examples/hello_editorial
 ```
 
-The Stage 1 canvas labels text as a placeholder. It deliberately does not claim production typography before the locked ICU/HarfBuzz paragraph engine is implemented in Stage 3.
+The desktop shell provides a multi-file Python sidebar/editor, isolated Run/Stop evaluation, last-good preview, page canvas selection, dragging and resize, a geometry/source inspector, reveal-in-Python, rectangle and four-point cubic Bézier drawing, source-aware expression choices, undo/redo and unsaved-source recovery. GUI-created document objects receive opaque stable `pd_…` IDs.
 
-Run the dependency-free local test suite with:
+Install the typography authority stack to inspect fonts and shape real glyphs:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+python -m pip install -e '.[typography]'
+pydesign font-info /path/to/font.otf
+pydesign shape-text /path/to/font.otf 'office سلام' --size 12 --language en
+```
+
+Add `.[unicode]` plus system ICU development files for ICU line boundaries and composition. The current page canvas still labels `TextFrame` operations as placeholders: glyph shaping, ICU/Pyphen break candidates and the greedy composer exist, but linked-frame flow, fallback, bidi itemisation, justification and outline canvas/PDF painting remain staged work.
+
+Run verification with:
+
+```bash
+python -m pip install -e '.[dev,typography]'
+ruff check .
+mypy
+pytest
+python scripts/check_architecture.py
 ```
 
 ## Implementation sequence
@@ -71,8 +85,8 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 1. Repository/tooling and architecture guardrails.
 2. Headless source-to-page model and serializable display list.
 3. PySide6 code/canvas shell with isolated evaluation.
-4. LibCST-backed visible GUI edits and recovery.
-5. Typography authority and identical glyph-run rendering.
+4. LibCST-backed visible GUI edits and recovery (foundation implemented).
+5. Typography authority and identical glyph-run rendering (font/shaping foundation implemented).
 6. PDF parity and Poppler proofing.
 7. Editorial layout, advanced graphics/colour and print production.
 

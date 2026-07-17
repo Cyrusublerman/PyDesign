@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 from pydesign.diagnostics import Diagnostic
-from pydesign.model import Document, Page, Rectangle, TextFrame
+from pydesign.model import BezierPath, Document, MoveTo, Page, Rectangle, TextFrame
 
 _ID_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.:-]*$")
 
@@ -102,3 +102,24 @@ def _validate_page(
                     page.id,
                 )
             )
+        if isinstance(element, BezierPath):
+            if not element.commands or not isinstance(element.commands[0], MoveTo):
+                diagnostics.append(
+                    Diagnostic(
+                        "PD-PATH-001",
+                        "error",
+                        "BezierPath must begin with MoveTo",
+                        element.id,
+                        page.id,
+                    )
+                )
+            if element.stroke_width.points < 0:
+                diagnostics.append(
+                    Diagnostic(
+                        "PD-PATH-002",
+                        "error",
+                        "Path stroke width cannot be negative",
+                        element.id,
+                        page.id,
+                    )
+                )

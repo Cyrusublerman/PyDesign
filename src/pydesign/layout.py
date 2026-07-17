@@ -5,19 +5,29 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from pydesign.diagnostics import Diagnostic
-from pydesign.model import Document, Rectangle, TextFrame
+from pydesign.model import (
+    BezierPath,
+    ClosePath,
+    CurveTo,
+    Document,
+    LineTo,
+    MoveTo,
+    Rectangle,
+    TextFrame,
+)
 from pydesign.validation import validate_document
 
 type JsonScalar = str | int | float | bool | None
+type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
 
 
 @dataclass(frozen=True, slots=True)
 class DisplayOperation:
     kind: str
     object_id: str
-    parameters: tuple[tuple[str, JsonScalar], ...]
+    parameters: tuple[tuple[str, JsonValue], ...]
 
-    def to_dict(self) -> dict[str, JsonScalar]:
+    def to_dict(self) -> dict[str, JsonValue]:
         return {"op": self.kind, "object_id": self.object_id, **dict(self.parameters)}
 
 
@@ -82,6 +92,19 @@ def layout_document(document: Document, *, revision: str = "unversioned") -> Lay
                         ),
                     )
                 )
+            elif isinstance(element, BezierPath):
+                operations.append(
+                    DisplayOperation(
+                        "bezier_path",
+                        element.id,
+                        (
+                            ("commands", [_path_command(command) for command in element.commands]),
+                            ("fill", element.fill),
+                            ("stroke", element.stroke),
+                            ("stroke_width", element.stroke_width.points),
+                        ),
+                    )
+                )
             elif isinstance(element, TextFrame):
                 x, y, width, height = element.frame.to_points()
                 operations.append(
@@ -122,3 +145,21 @@ def layout_document(document: Document, *, revision: str = "unversioned") -> Lay
         pages=tuple(pages),
         diagnostics=tuple(diagnostics),
     )
+
+
+def _path_command(command: MoveTo | LineTo | CurveTo | ClosePath) -> dict[str, JsonValue]:
+    if isinstance(command, MoveTo):
+        return {"command": "move", "x": command.x.points, "y": command.y.points}
+    if isinstance(command, LineTo):
+        return {"command": "line", "x": command.x.points, "y": command.y.points}
+    if isinstance(command, CurveTo):
+        return {
+            "command": "curve",
+            "control_1_x": command.control_1_x.points,
+            "control_1_y": command.control_1_y.points,
+            "control_2_x": command.control_2_x.points,
+            "control_2_y": command.control_2_y.points,
+            "x": command.x.points,
+            "y": command.y.points,
+        }
+    return {"command": "close"}

@@ -3,8 +3,11 @@ from __future__ import annotations
 import unittest
 
 from pydesign import (
+    BezierPath,
+    CurveTo,
     Document,
     DocumentValidationError,
+    MoveTo,
     Page,
     Rectangle,
     TextFrame,
@@ -28,6 +31,21 @@ def sample_document() -> Document:
                         id="accent",
                         frame=(10 * mm, 12 * mm, 40 * mm, 4 * mm),
                         fill="#ff6600",
+                    ),
+                    BezierPath(
+                        id="curve",
+                        commands=(
+                            MoveTo(10 * mm, 60 * mm),
+                            CurveTo(
+                                40 * mm,
+                                30 * mm,
+                                80 * mm,
+                                90 * mm,
+                                120 * mm,
+                                60 * mm,
+                            ),
+                        ),
+                        stroke="#5b32a3",
                     ),
                     TextFrame(
                         id="title",
@@ -54,8 +72,12 @@ class ModelAndLayoutTests(unittest.TestCase):
         self.assertEqual(data["revision"], "abc123")
         page = data["pages"][0]
         operations = page["operations"]
-        self.assertEqual([item["op"] for item in operations], ["rectangle", "text_placeholder"])
+        self.assertEqual(
+            [item["op"] for item in operations],
+            ["rectangle", "bezier_path", "text_placeholder"],
+        )
         self.assertEqual(operations[0]["object_id"], "accent")
+        self.assertEqual(operations[1]["commands"][1]["command"], "curve")
         self.assertTrue(any(item.code == "PD-TEXT-001" for item in snapshot.diagnostics))
 
     def test_duplicate_ids_are_rejected(self) -> None:
@@ -80,6 +102,21 @@ class ModelAndLayoutTests(unittest.TestCase):
         )
         with self.assertRaises(DocumentValidationError):
             validate_document(document)
+
+    def test_path_must_begin_with_move(self) -> None:
+        document = Document(
+            id="document",
+            pages=[
+                Page(
+                    id="page",
+                    size=(100, 100),
+                    elements=[BezierPath(id="bad-path", commands=[CurveTo(0, 0, 1, 1, 2, 2)])],
+                )
+            ],
+        )
+        with self.assertRaises(DocumentValidationError) as caught:
+            validate_document(document)
+        self.assertIn("must begin with MoveTo", str(caught.exception))
 
 
 if __name__ == "__main__":

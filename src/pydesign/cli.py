@@ -30,6 +30,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     open_command = subcommands.add_parser("open", help="open the desktop application")
     open_command.add_argument("project", type=Path, nargs="?", default=None)
+
+    font_info = subcommands.add_parser(
+        "font-info", help="inspect exact OpenType identity and embedding metadata"
+    )
+    _font_arguments(font_info)
+
+    shape = subcommands.add_parser(
+        "shape-text", help="shape one itemised text run and write positioned glyph JSON"
+    )
+    _font_arguments(shape)
+    shape.add_argument("text")
+    shape.add_argument("--size", type=float, default=12.0)
+    shape.add_argument("--direction", choices=("ltr", "rtl", "ttb", "btt"), default=None)
+    shape.add_argument("--script", default=None)
+    shape.add_argument("--language", default=None)
+    shape.add_argument("--feature", action="append", default=[], metavar="TAG=VALUE")
     return parser
 
 
@@ -39,10 +55,18 @@ def _project_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--timeout", type=float, default=30.0)
 
 
+def _font_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("font", type=Path)
+    parser.add_argument("--face-index", type=int, default=0)
+    parser.add_argument("--variation", action="append", default=[], metavar="TAG=VALUE")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "open":
         return _open_gui(args.project)
+    if args.command in {"font-info", "shape-text"}:
+        return _run_typography_command(args)
 
     result = WorkerClient().evaluate(args.project, profile=args.profile, timeout=args.timeout)
     if args.command == "check":
@@ -114,3 +138,63 @@ def _open_gui(project: Path | None) -> int:
         print(f"Details: {error}")
         return 3
     return run(project)
+
+
+def _run_typography_command(args: argparse.Namespace) -> int:
+    try:
+        from pydesign.text import FontValidationError, ShapingError, load_font_face, shape_text
+    except ImportError as error:
+        print(
+            "Typography dependencies are unavailable. Install with: "
+            "pip install 'pydesign[typography]'"
+        )
+        print(f"Details: {error}")
+        return 3
+    try:
+        variations = _numeric_assignments(args.variation, label="variation")
+        face = load_font_face(args.font, face_index=args.face_index, variations=variations)
+        if args.command == "font-info":
+            payload = face.to_dict()
+        else:
+            features = _feature_assignments(args.feature)
+            run = shape_text(
+                face,
+                args.text,
+                font_size=args.size,
+                direction=args.direction,
+                script=args.script,
+                language=args.language,
+                features=features,
+            )
+            payload = run.to_dict()
+    except (FontValidationError, ShapingError, OSError, ValueError) as error:
+        print(f"ERROR: {error}")
+        return 2
+    print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+def _numeric_assignments(values: list[str], *, label: str) -> dict[str, float]:
+    result: dict[str, float] = {}
+    for assignment in values:
+        tag, separator, raw_value = assignment.partition("=")
+        if not separator:
+            raise ValueError(f"{label} must have the form TAG=VALUE: {assignment!r}")
+        result[tag] = float(raw_value)
+    return result
+
+
+def _feature_assignments(values: list[str]) -> dict[str, int | bool]:
+    result: dict[str, int | bool] = {}
+    for assignment in values:
+        tag, separator, raw_value = assignment.partition("=")
+        if not separator:
+            raise ValueError(f"feature must have the form TAG=VALUE: {assignment!r}")
+        lowered = raw_value.lower()
+        if lowered in {"true", "on"}:
+            result[tag] = True
+        elif lowered in {"false", "off"}:
+            result[tag] = False
+        else:
+            result[tag] = int(raw_value)
+    return result

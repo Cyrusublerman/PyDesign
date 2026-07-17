@@ -51,13 +51,38 @@ class GuiSmokeTests(unittest.TestCase):
                                 "fill": "#ff6600",
                                 "stroke": None,
                                 "stroke_width": 1,
-                            }
+                            },
+                            {
+                                "op": "bezier_path",
+                                "object_id": "curve",
+                                "commands": [
+                                    {"command": "move", "x": 10, "y": 60},
+                                    {
+                                        "command": "curve",
+                                        "control_1_x": 30,
+                                        "control_1_y": 20,
+                                        "control_2_x": 60,
+                                        "control_2_y": 100,
+                                        "x": 90,
+                                        "y": 60,
+                                    },
+                                ],
+                                "fill": None,
+                                "stroke": "#5b32a3",
+                                "stroke_width": 1,
+                            },
                         ],
                     }
                 ]
             }
         )
         self.assertGreaterEqual(len(canvas.canvas_scene.items()), 3)
+        box = canvas._object_items["box"]
+        box.setSelected(True)
+        self.assertTrue(box.resize_handle.isVisible())
+        box.set_frame_size(40, 50)
+        self.assertEqual(box.frame_points()[2:], (40.0, 50.0))
+        self.assertIn("curve", canvas._object_items)
 
 
 if __name__ == "__main__":

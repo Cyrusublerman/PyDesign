@@ -95,6 +95,89 @@ class Rectangle(Element):
         object.__setattr__(self, "stroke_width", as_length(stroke_width))
 
 
+@dataclass(frozen=True, slots=True)
+class MoveTo:
+    x: Length
+    y: Length
+
+    def __init__(self, x: LengthLike, y: LengthLike) -> None:
+        object.__setattr__(self, "x", as_length(x))
+        object.__setattr__(self, "y", as_length(y))
+
+
+@dataclass(frozen=True, slots=True)
+class LineTo:
+    x: Length
+    y: Length
+
+    def __init__(self, x: LengthLike, y: LengthLike) -> None:
+        object.__setattr__(self, "x", as_length(x))
+        object.__setattr__(self, "y", as_length(y))
+
+
+@dataclass(frozen=True, slots=True)
+class CurveTo:
+    control_1_x: Length
+    control_1_y: Length
+    control_2_x: Length
+    control_2_y: Length
+    x: Length
+    y: Length
+
+    def __init__(
+        self,
+        control_1_x: LengthLike,
+        control_1_y: LengthLike,
+        control_2_x: LengthLike,
+        control_2_y: LengthLike,
+        x: LengthLike,
+        y: LengthLike,
+    ) -> None:
+        object.__setattr__(self, "control_1_x", as_length(control_1_x))
+        object.__setattr__(self, "control_1_y", as_length(control_1_y))
+        object.__setattr__(self, "control_2_x", as_length(control_2_x))
+        object.__setattr__(self, "control_2_y", as_length(control_2_y))
+        object.__setattr__(self, "x", as_length(x))
+        object.__setattr__(self, "y", as_length(y))
+
+
+@dataclass(frozen=True, slots=True)
+class ClosePath:
+    pass
+
+
+type PathCommand = MoveTo | LineTo | CurveTo | ClosePath
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BezierPath(Element):
+    commands: tuple[PathCommand, ...]
+    fill: str | None = None
+    stroke: str | None = "#000000"
+    stroke_width: Length = field(default_factory=lambda: Length(1.0))
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        commands: Iterable[PathCommand],
+        label: str | None = None,
+        visible: bool = True,
+        printable: bool = True,
+        fill: str | None = None,
+        stroke: str | None = "#000000",
+        stroke_width: LengthLike = 1.0,
+    ) -> None:
+        object.__setattr__(self, "id", id)
+        object.__setattr__(self, "label", label)
+        object.__setattr__(self, "visible", visible)
+        object.__setattr__(self, "printable", printable)
+        object.__setattr__(self, "commands", tuple(commands))
+        object.__setattr__(self, "fill", fill)
+        object.__setattr__(self, "stroke", stroke)
+        object.__setattr__(self, "stroke_width", as_length(stroke_width))
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class TextFrame(Element):
     frame: Rect
@@ -124,7 +207,7 @@ class TextFrame(Element):
         object.__setattr__(self, "colour", colour)
 
 
-type LeafElement = Rectangle | TextFrame
+type LeafElement = BezierPath | Rectangle | TextFrame
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
