@@ -155,9 +155,7 @@ class ProjectLifecycleMixin:
             action = self.recent_projects_menu.addAction(project.name)
             action.setToolTip(str(project))
             action.triggered.connect(
-                lambda _checked=False, selected=project: getattr(self, "open_project")(
-                    selected
-                )
+                lambda _checked=False, selected=project: self.open_project(selected)
             )
 
     def save_project_as(self) -> None:
