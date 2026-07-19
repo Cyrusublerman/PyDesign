@@ -10,6 +10,11 @@ Each stable requirement has an owning specification and planned verification. ID
 | R-SRC-004 | Stable IDs survive re-evaluation/refactoring. | 02, 03 | Selection/source-map round-trip tests. |
 | R-SRC-005 | Multi-file page order is explicit. | 02 | Shuffle filenames; page order remains unchanged. |
 | R-SRC-006 | Rename/move updates imports atomically. | 02 | Failure-injected multi-file refactor test. |
+| R-PRJ-001 | A folder containing `project.toml` is the portable project/save unit and may live anywhere. | 02 | Create and evaluate in an external temporary directory. |
+| R-PRJ-002 | Normal creation and Save As do not place user projects in the PyDesign source checkout. | 02 | Checkout-descendant rejection and explicit-override tests. |
+| R-PRJ-003 | Save As/Duplicate preserve authored inputs, regenerate project identity and omit derived state. | 02 | Copy fixture with assets, caches, builds, exports and Git metadata. |
+| R-PRJ-004 | Packaging is deterministic, inventoried and contains no unresolved symlinks or internal state. | 02, 09 | Repeated ZIP hash, manifest and exclusion tests. |
+| R-PRJ-005 | Recent paths and GUI layout are application settings, not project truth. | 02, 06 | Settings-location and project-tree mutation tests. |
 | R-MOD-001 | Source, semantic, layout and view states remain separate. | 03 | Import-boundary and cache-deletion tests. |
 | R-MOD-002 | Units/coordinates are exact and documented. | 03 | Unit/matrix/page-box property tests. |
 | R-MOD-003 | Collections retain deterministic order. | 03 | Repeated build hash and reorder/undo tests. |
@@ -54,4 +59,3 @@ Each stable requirement has an owning specification and planned verification. ID
 | R-QLT-003 | Features require source, canvas, PDF, diagnostics, docs and tests. | 10 | Pull-request checklist. |
 
 Before Stage 0 closes, each row receives links to concrete test modules or implementation issues. Before 1.0, every row is automated where technically possible; manual checks record operator, platform, fixture and evidence.
-
