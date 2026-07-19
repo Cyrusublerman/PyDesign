@@ -11,12 +11,36 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from pydesign.runtime import WorkerClient
+from pydesign.runtime import (
+    WorkerClient,
+    create_project,
+    duplicate_project,
+    package_project,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pydesign", description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
+
+    new = subcommands.add_parser("new", help="create a portable PyDesign project folder")
+    new.add_argument("destination", type=Path)
+    new.add_argument("--name", default=None)
+    new.add_argument("--allow-in-source-checkout", action="store_true")
+
+    duplicate = subcommands.add_parser(
+        "duplicate", help="copy authored project files to a new independent folder"
+    )
+    duplicate.add_argument("project", type=Path)
+    duplicate.add_argument("destination", type=Path)
+    duplicate.add_argument("--name", default=None)
+    duplicate.add_argument("--allow-in-source-checkout", action="store_true")
+
+    package = subcommands.add_parser(
+        "package", help="validate and package portable project inputs"
+    )
+    _project_arguments(package)
+    package.add_argument("--output", type=Path, required=True)
 
     check = subcommands.add_parser("check", help="evaluate and validate a project")
     _project_arguments(check)
@@ -70,12 +94,26 @@ def _font_arguments(parser: argparse.ArgumentParser) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command in {"new", "duplicate"}:
+        return _run_project_creation_command(args)
     if args.command == "open":
         return _open_gui(args.project)
     if args.command in {"font-info", "shape-text"}:
         return _run_typography_command(args)
 
     result = WorkerClient().evaluate(args.project, profile=args.profile, timeout=args.timeout)
+    if args.command == "package":
+        if not result.ok:
+            _print_human_result(result.response, result.stderr)
+            return 2
+        try:
+            package_result = package_project(args.project, args.output)
+        except (OSError, ValueError) as error:
+            print(f"ERROR: {error}")
+            return 2
+        print(f"wrote {package_result.output} ({package_result.file_count} project files)")
+        print(f"package manifest {package_result.manifest_sha256[:12]}")
+        return 0
     if args.command == "check":
         if args.as_json:
             print(json.dumps(result.response, ensure_ascii=False, indent=2, sort_keys=True))
@@ -96,6 +134,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         return _build_pdf(result.layout, args.output, args.manifest)
     raise AssertionError(f"unhandled command {args.command}")
+
+
+def _run_project_creation_command(args: argparse.Namespace) -> int:
+    try:
+        if args.command == "new":
+            config = create_project(
+                args.destination,
+                name=args.name,
+                allow_in_source_checkout=args.allow_in_source_checkout,
+            )
+            verb = "created"
+        else:
+            config = duplicate_project(
+                args.project,
+                args.destination,
+                name=args.name,
+                allow_in_source_checkout=args.allow_in_source_checkout,
+            )
+            verb = "duplicated"
+    except (OSError, ValueError) as error:
+        print(f"ERROR: {error}")
+        return 2
+    print(f"{verb} {config.name}: {config.root}")
+    return 0
 
 
 def _print_human_result(response: dict[str, Any], stderr: str) -> None:
