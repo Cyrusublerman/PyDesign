@@ -1,6 +1,6 @@
 # Modularity assessment
 
-Updated: 2026-07-17
+Updated: 2026-07-18
 
 ## Outcome
 
@@ -17,6 +17,10 @@ The GUI has been refactored without changing the `pydesign.gui.app` entrypoint:
 | `gui.commands` | Undoable source-plan application | source API and a small host `Protocol` |
 | `gui.types` | Shared GUI value contracts and runtime narrowing | QtCore and source value types |
 | `gui.evaluation` | QProcess lifecycle and protocol decoding | QtCore only; emits response/error values |
+| `gui.project_lifecycle` | New/open/copy/package dialogs and project-switch decisions | headless runtime project APIs, settings |
+| `gui.settings` | Typed OS-standard application preferences and recent paths | QtCore only |
+
+Portable project filesystem operations live in `runtime.project_files`, separate from manifest parsing and worker evaluation. Creation, duplication and packaging therefore remain available to the CLI without importing Qt. The desktop window delegates lifecycle commands to a mixin and remains below its enforced orchestration budget.
 
 Source editing now separates `source.edits` (public immutable plan/value contracts), `source.cst_helpers` (unit/format/import primitives), `source.rewrite` (frame and insertion policy), `source.path_rewrite` (cubic control-point policy), `source.transaction` (atomic application) and `source.journal` (crash recovery). Path rewriting no longer imports private names from frame rewriting.
 
@@ -27,7 +31,7 @@ Source editing now separates `source.edits` (public immutable plan/value contrac
 | Area | Assessment | Main follow-up |
 |---|---|---|
 | Units/model/layout/validation | Cohesive and renderer-neutral | Split model by geometry/path/text only when each family grows materially |
-| Runtime | Clear project/client/evaluator/worker/recovery boundaries | Add typed cancellation/stale-result state, not GUI callbacks |
+| Runtime | Clear manifest, project-files, client, evaluator, worker and recovery boundaries | Add typed cancellation/stale-result state, not GUI callbacks |
 | Source | Explicit edit/CST/frame/path/transaction/journal modules; no private cross-family dependency | Add style/property modules by ownership family rather than expanding `rewrite.py` |
 | Typography | Font, registry/fallback, glyph, break, paragraph, flow and shaping authorities are separate | Add bidi itemisation/optimisation modules rather than expanding shaping/flow |
 | GUI | Refactored into canvas/view/command/evaluation/orchestration seams | Extract editor session before window reaches its 575-line budget |

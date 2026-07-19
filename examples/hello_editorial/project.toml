@@ -1,5 +1,6 @@
 [project]
 format = 1
+id = "42679f5d-c6c1-4fe8-aa43-07185d54d672"
 name = "Hello Editorial"
 entrypoint = "document:build"
 default_profile = "screen"
@@ -17,4 +18,3 @@ allow_system_fonts = false
 
 [profiles.screen]
 kind = "display-list"
-

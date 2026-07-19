@@ -8,7 +8,6 @@ from typing import Any
 from PySide6.QtCore import QIODevice, QSaveFile, Qt, QTimer
 from PySide6.QtGui import QAction, QFont, QTextCursor, QUndoStack
 from PySide6.QtWidgets import (
-    QFileDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -28,6 +27,8 @@ from pydesign.gui.commands import SourcePlanCommand
 from pydesign.gui.dialogs import choose_geometry_strategy, resolve_buffer_recovery
 from pydesign.gui.evaluation import EvaluationController
 from pydesign.gui.inspector import GeometryInspector
+from pydesign.gui.project_lifecycle import ProjectLifecycleMixin
+from pydesign.gui.settings import ApplicationSettings
 from pydesign.gui.types import _is_bezier_points, _is_frame
 from pydesign.runtime.project import ProjectConfigError, load_project_config
 from pydesign.runtime.recovery import RecoveryStore
@@ -47,11 +48,14 @@ from pydesign.source import (
 )
 
 
-class MainWindow(QMainWindow):
-    def __init__(self, project: Path | None = None) -> None:
+class MainWindow(ProjectLifecycleMixin, QMainWindow):
+    def __init__(
+        self, project: Path | None = None, *, settings: ApplicationSettings | None = None
+    ) -> None:
         super().__init__()
         self.setWindowTitle("PyDesign — Stage 2")
         self.resize(1540, 940)
+        self.settings = settings or ApplicationSettings()
         self.project_root: Path | None = None
         self.entry_source_path: Path | None = None
         self.active_source_path: Path | None = None
@@ -125,13 +129,14 @@ class MainWindow(QMainWindow):
         status.addPermanentWidget(self.state_label)
         self.setStatusBar(status)
         self._create_actions()
+        if geometry := self.settings.window_geometry():
+            self.restoreGeometry(geometry)
+        if state := self.settings.window_state():
+            self.restoreState(state)
         if project is not None:
             self.open_project(project)
 
     def _create_actions(self) -> None:
-        open_action = QAction("Open Project…", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self.choose_project)
         save_action = QAction("Save", self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_source)
@@ -151,9 +156,11 @@ class MainWindow(QMainWindow):
         reveal_action.setShortcut("F4")
         reveal_action.triggered.connect(self.reveal_selection_source)
 
+        toolbar = QToolBar("Authoring")
+        toolbar.setObjectName("authoring-toolbar")
+        toolbar.setMovable(False)
         file_menu = self.menuBar().addMenu("File")
-        file_menu.addAction(open_action)
-        file_menu.addAction(save_action)
+        self.install_project_actions(file_menu, toolbar, save_action)
         edit_menu = self.menuBar().addMenu("Edit")
         edit_menu.addAction(self.source_undo.createUndoAction(self, "Undo Canvas Source Edit"))
         edit_menu.addAction(self.source_undo.createRedoAction(self, "Redo Canvas Source Edit"))
@@ -163,9 +170,6 @@ class MainWindow(QMainWindow):
         view_menu = self.menuBar().addMenu("View")
         view_menu.addAction(reveal_action)
 
-        toolbar = QToolBar("Authoring")
-        toolbar.setMovable(False)
-        toolbar.addAction(open_action)
         toolbar.addAction(save_action)
         toolbar.addSeparator()
         toolbar.addAction(run_action)
@@ -175,14 +179,14 @@ class MainWindow(QMainWindow):
         toolbar.addAction(bezier_action)
         self.addToolBar(toolbar)
 
-    def choose_project(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "Open PyDesign project")
-        if directory:
-            self.open_project(Path(directory))
-
-    def open_project(self, root: Path) -> None:
+    def open_project(self, root: Path, *, offer_example_copy: bool = True) -> None:
+        if not self.confirm_project_switch():
+            return
+        prepared = self.prepare_project_open(root, offer_example_copy=offer_example_copy)
+        if prepared is None:
+            return
         try:
-            config = load_project_config(root)
+            config = load_project_config(prepared)
             transaction_recovery = recover_source_transactions(config.root)
             if transaction_recovery.conflicts:
                 raise ProjectConfigError(
@@ -200,9 +204,13 @@ class MainWindow(QMainWindow):
         self._recovery_checked.clear()
         self.entry_source_path = module_path
         self.source_undo.clear()
+        self.last_good_revision = None
+        self.selected_object_id = ""
+        self.selected_frame = None
         self._populate_sources(module_path)
         self.setWindowTitle(f"PyDesign — {config.name}")
         self.state_label.setText("Ready")
+        self.record_recent_project(config.root)
         if transaction_recovery.recovered:
             self.diagnostics.setPlainText(
                 "Recovered interrupted source transaction(s): "
@@ -552,4 +560,5 @@ class MainWindow(QMainWindow):
             ):
                 self.recovery.clear(self.active_source_path)
         self.stop_project()
+        self.save_application_state()
         event.accept()

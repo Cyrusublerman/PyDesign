@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
+    from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
 
     from pydesign.gui.app import MainWindow, PageCanvas
     from pydesign.gui.canvas import EditableBezierItem
+    from pydesign.gui.settings import ApplicationSettings
 except ImportError:
     QApplication = None  # type: ignore[assignment,misc]
     MainWindow = None  # type: ignore[assignment,misc]
     PageCanvas = None  # type: ignore[assignment,misc]
     EditableBezierItem = None  # type: ignore[assignment,misc]
+    ApplicationSettings = None  # type: ignore[assignment,misc]
+    QSettings = None  # type: ignore[assignment,misc]
 
 
 @unittest.skipUnless(
@@ -28,9 +34,31 @@ class GuiSmokeTests(unittest.TestCase):
 
     def test_shell_and_canvas_construct(self) -> None:
         assert MainWindow is not None
-        window = MainWindow()
-        self.assertEqual(window.state_label.text(), "No project")
-        window.close()
+        assert ApplicationSettings is not None
+        assert QSettings is not None
+        with tempfile.TemporaryDirectory() as directory:
+            backend = QSettings(str(Path(directory) / "settings.ini"), QSettings.Format.IniFormat)
+            window = MainWindow(settings=ApplicationSettings(backend))
+            self.assertEqual(window.state_label.text(), "No project")
+            window.close()
+
+    def test_recent_projects_are_application_state(self) -> None:
+        assert ApplicationSettings is not None
+        assert QSettings is not None
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "First"
+            second = root / "Second"
+            first.mkdir()
+            second.mkdir()
+            (first / "project.toml").write_text("[project]\n", encoding="utf-8")
+            (second / "project.toml").write_text("[project]\n", encoding="utf-8")
+            backend = QSettings(str(root / "settings.ini"), QSettings.Format.IniFormat)
+            settings = ApplicationSettings(backend)
+            settings.add_recent_project(first)
+            settings.add_recent_project(second)
+            self.assertEqual(settings.recent_projects(), (second.resolve(), first.resolve()))
+            self.assertFalse((first / ".pydesign").exists())
 
     def test_display_list_creates_page_items(self) -> None:
         assert PageCanvas is not None

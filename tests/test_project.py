@@ -16,7 +16,8 @@ class ProjectTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "project.toml").write_text(
-                "[project]\nformat=1\nname='Test'\nentrypoint='document:build'\n",
+                "[project]\nformat=1\nid='project-test'\n"
+                "name='Test'\nentrypoint='document:build'\n",
                 encoding="utf-8",
             )
             (root / "document.py").write_text("value = 1\n", encoding="utf-8")
@@ -26,6 +27,7 @@ class ProjectTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(config.module_name, "document")
             self.assertEqual(config.function_name, "build")
+            self.assertEqual(config.project_id, "project-test")
             (root / "document.py").write_text("value = 2\n", encoding="utf-8")
             self.assertNotEqual(first, compute_project_revision(config))
 

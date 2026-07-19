@@ -15,3 +15,6 @@ Thumbs.db
 .pydesign/
 exports/
 
+# Explicit scratch locations for local user projects. Bundled examples remain tracked.
+/projects/
+/user-projects/

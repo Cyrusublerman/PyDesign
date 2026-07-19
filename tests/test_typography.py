@@ -252,6 +252,7 @@ class UnicodeCompositionTests(unittest.TestCase):
         self.assertGreater(len(flow.overset_text), 0)
 
 
+@unittest.skipUnless(uharfbuzz is not None, "typography stack unavailable")
 class FlowValidationTests(unittest.TestCase):
     def test_flow_rejects_duplicate_ids_and_impossible_gutters(self) -> None:
         duplicate = (

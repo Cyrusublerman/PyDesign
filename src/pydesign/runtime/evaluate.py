@@ -50,6 +50,7 @@ def evaluate_project(
             "ok": True,
             "revision": revision,
             "project": {
+                "id": config.project_id,
                 "name": config.name,
                 "root": str(config.root),
                 "entrypoint": config.entrypoint,
