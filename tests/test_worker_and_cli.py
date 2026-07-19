@@ -31,6 +31,26 @@ def write_project(root: Path, *, valid: bool = True) -> None:
 
 
 class WorkerAndCliTests(unittest.TestCase):
+    def test_cli_new_duplicate_and_package_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / "Publication"
+            duplicate = root / "Publication Copy"
+            package = root / "publication.zip"
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                new_code = main(["new", str(project), "--name", "Publication"])
+                duplicate_code = main(["duplicate", str(project), str(duplicate)])
+                package_code = main(
+                    ["package", str(duplicate), "--output", str(package)]
+                )
+            self.assertEqual(new_code, 0, stdout.getvalue())
+            self.assertEqual(duplicate_code, 0, stdout.getvalue())
+            self.assertEqual(package_code, 0, stdout.getvalue())
+            self.assertTrue((project / "project.toml").is_file())
+            self.assertTrue((duplicate / "project.toml").is_file())
+            self.assertTrue(package.is_file())
+
     def test_worker_returns_layout_from_disposable_process(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
