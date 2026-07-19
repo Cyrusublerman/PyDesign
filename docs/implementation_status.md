@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated: 2026-07-17
+Updated: 2026-07-18
 
 ## Implemented and verified
 
@@ -12,7 +12,12 @@ Updated: 2026-07-17
 - Immutable renderer-neutral display list and JSON schema version.
 - Deterministic conservative project hashing and `project.toml` loading.
 - Fresh subprocess evaluation with versioned JSON-over-stdio messages.
-- `pydesign check`, `render-json` and `open` commands.
+- `pydesign new`, `duplicate`, `package`, `check`, `render-json` and `open` commands.
+- Atomic portable-folder project creation with source-checkout destination protection.
+- Independent Save As/Duplicate copying that regenerates project identity and omits derived state.
+- Deterministic project-folder/ZIP packaging with SHA-256 input inventory and symlink refusal.
+- OS-standard default project location, recent-project history and persistent desktop window state.
+- GUI New/Open/Recent/Save As/Duplicate/Package actions and safe bundled-example copying.
 - PySide6 multi-file code/canvas/diagnostics shell with Run, Stop, atomic save and last-good-preview behaviour.
 - Two-page, multi-file offline example project.
 - LibCST stable-ID source index with literal, physical-quantity, tuple, name and expression ownership.
