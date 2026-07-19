@@ -63,6 +63,11 @@ This is the compact register of decisions that implementation may rely upon.
 | D-052 | Save uses atomic replace. Autosave stores recoverable source snapshots separately and never overwrites the last explicit user save. |
 | D-053 | GUI preferences and view state are separate from portable project state. Portable project settings are visible in `project.toml`. |
 | D-054 | File watching detects external changes. Clean buffers reload; dirty buffers receive a three-way merge workflow. |
+| D-055 | A project is an ordinary open folder recognised by `project.toml` and treated by the application as one portable save-document unit. |
+| D-056 | User projects default outside the PyDesign source checkout. New Project and Save As block checkout destinations unless an explicit development override is used. |
+| D-057 | Save As and Duplicate copy authored inputs and issue a new project identity; they exclude repository metadata, environments, caches, recovery data, builds and exports. |
+| D-058 | Recent projects, default locations, window geometry and workspace state are application-level settings stored in OS-standard locations, never portable project truth. |
+| D-059 | Project packaging requires a successful current evaluation and produces a portable copy plus a deterministic hash manifest; unresolved symbolic links are rejected. |
 
 ## Extensions, privacy and distribution
 
