@@ -6,6 +6,8 @@ PyDesign projects are ordinary Python packages with a small declarative API and 
 
 “All Python is visible” means all authored choices, generated exceptions and GUI changes are represented in the project’s source. It does not mean PyDesign’s library implementation or derived cache must be copied into every project.
 
+The project folder is the application's save-document unit. It may live anywhere, is recognised by the `project.toml` at its root and is opened as one item even though its contents remain normal inspectable files. Moving or copying the complete folder must preserve the project when authored paths are relative. Opening a project never imports, copies or synchronises it into the PyDesign application repository.
+
 ## Default project structure
 
 ```text
@@ -36,7 +38,17 @@ my_publication/
     └── view.json
 ```
 
-Only `project.toml`, Python modules and user assets are authored truth. `exports/` is reproducible output. `.pydesign/` is disposable and normally ignored by version control, except a team may deliberately track a portable view preset separately.
+Only `project.toml`, Python modules, content/data files and user assets are authored truth. `exports/` is reproducible output. `.pydesign/` is entirely disposable and ignored by version control. No headless build may depend on it.
+
+## Repository separation and default location
+
+- Normal user projects default to the platform Documents directory under `PyDesign Projects` using Qt's standard platform paths.
+- New Project and Save As reject destinations inside the PyDesign application source checkout by default.
+- An explicit CLI development override may create a project in the repository's ignored `/projects/` or `/user-projects/` directories.
+- Projects under `examples/` are tracked executable documentation. The GUI offers to copy them externally before editing.
+- PyDesign never initialises Git, attaches a remote or synchronises a project automatically.
+- A project may deliberately be placed in its own user-managed version-control repository; that is independent of the PyDesign source repository.
+- Recent-project paths, the default project parent and window/workspace state are user application settings stored outside projects.
 
 ## `project.toml`
 
@@ -45,6 +57,7 @@ The manifest contains portable build configuration, never element geometry.
 ```toml
 [project]
 format = 1
+id = "69fb086b-0760-4a5f-a3fc-44cc12e5d8f2"
 name = "My Publication"
 entrypoint = "document:build"
 default_profile = "print"
@@ -218,7 +231,19 @@ LibCST preserves comments and formatting around changed nodes. PyDesign does not
 - Rename/move uses LibCST import updates and filesystem changes in one recoverable transaction.
 - Delete defaults to removing the document reference and moving the module to the operating system trash when it has no remaining references.
 - Asset paths are project-relative `pathlib.Path` values resolved by `BuildContext`.
-- Symlinks are allowed but packaging resolves and reports them.
+- Symlinks may be used during authoring, but the initial portable packager rejects them rather than silently emitting a package with an external dependency. A later collect-and-rewrite workflow may resolve explicitly approved links and report their provenance.
+
+## Project lifecycle operations
+
+- **New Project** creates a complete starter folder in a sibling staging directory, validates it and publishes it with one atomic rename.
+- **Open Project** accepts any folder containing a supported `project.toml`; no repository-relative assumption is permitted.
+- **Save** atomically writes the active authored source. It does not serialise a hidden scene database.
+- **Save Project As** copies portable authored inputs, creates a new project identity and opens the copy.
+- **Duplicate Project** performs the same independent copy but leaves the original open.
+- **Copy Example** is Duplicate specialised for a tracked bundled example and defaults outside the source checkout.
+- **Package Project** first requires a successful current evaluation, then writes a folder or deterministic ZIP with a hash inventory.
+- Project copying and packaging exclude `.git/`, `.pydesign/`, `.venv/`, `__pycache__/`, `build/`, `dist/` and `exports/`.
+- Package operations do not decide whether a font or asset may legally be redistributed. Preflight reports licence restrictions, and the user must resolve them before external handoff.
 
 ## Text and external content
 
@@ -227,4 +252,3 @@ Long editorial content may remain in UTF-8 Markdown, plain text, JSON, CSV or pr
 ## Determinism
 
 In deterministic mode the build context fixes locale, timezone, random seed, page order and metadata timestamps. Network APIs are unavailable by policy, directory iteration must be explicitly sorted, and volatile calls produce diagnostics. A build manifest records Python, PyDesign, dependency, font and asset fingerprints.
-
