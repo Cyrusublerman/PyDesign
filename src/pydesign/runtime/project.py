@@ -17,6 +17,7 @@ class ProjectConfigError(ValueError):
 class ProjectConfig:
     root: Path
     name: str
+    project_id: str | None
     format_version: int
     entrypoint: str
     default_profile: str
@@ -55,10 +56,16 @@ def load_project_config(root: str | Path) -> ProjectConfig:
     format_version = int(project.get("format", 1))
     if format_version != 1:
         raise ProjectConfigError(f"unsupported project format {format_version}; expected 1")
+    raw_project_id = project.get("id")
+    if raw_project_id is not None and (
+        not isinstance(raw_project_id, str) or not raw_project_id.strip()
+    ):
+        raise ProjectConfigError("project.id must be a non-empty string when present")
 
     return ProjectConfig(
         root=project_root,
         name=str(project.get("name", project_root.name)),
+        project_id=raw_project_id,
         format_version=format_version,
         entrypoint=entrypoint,
         default_profile=str(project.get("default_profile", "screen")),
@@ -68,7 +75,15 @@ def load_project_config(root: str | Path) -> ProjectConfig:
 
 def compute_project_revision(config: ProjectConfig) -> str:
     digest = hashlib.sha256()
-    ignored_parts = {".git", ".pydesign", ".venv", "__pycache__", "exports"}
+    ignored_parts = {
+        ".git",
+        ".pydesign",
+        ".venv",
+        "__pycache__",
+        "build",
+        "dist",
+        "exports",
+    }
     paths = sorted(
         path
         for path in config.root.rglob("*")
