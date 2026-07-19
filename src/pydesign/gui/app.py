@@ -15,6 +15,8 @@ __all__ = ["MainWindow", "PageCanvas", "run"]
 
 def run(project: Path | None = None) -> int:
     application = QApplication.instance() or QApplication(sys.argv)
+    application.setOrganizationName("PyDesign")
+    application.setOrganizationDomain("pydesign.local")
     application.setApplicationName("PyDesign")
     window = MainWindow(project)
     window.show()
