@@ -64,15 +64,15 @@ def run_proof(
         root / ".pydesign" / "proof" / "reference" if reference_dir is None else Path(reference_dir)
     )
     if ref_root.is_dir():
-        compared = True
         for page in pages:
             reference = ref_root / page.name
             if not reference.is_file():
                 continue
-            diff_value, diff_path = _difference_png(page, reference, out / f"diff-{page.name}")
+            diff_value, _diff_path = _difference_png(page, reference, out / f"diff-{page.name}")
+            if diff_value is None:
+                continue
+            compared = True
             max_diff = max(max_diff, diff_value)
-            if diff_path is not None:
-                pass
     ok = (not compared) or max_diff <= threshold
     manifest = {
         "ok": ok,
@@ -102,11 +102,15 @@ def run_proof(
     )
 
 
-def _difference_png(actual: Path, reference: Path, destination: Path) -> tuple[float, Path | None]:
+def _difference_png(
+    actual: Path,
+    reference: Path,
+    destination: Path,
+) -> tuple[float | None, Path | None]:
     try:
         from PIL import Image, ImageChops, ImageStat
     except ImportError:
-        return 0.0, None
+        return None, None
     left = Image.open(actual).convert("RGB")
     right = Image.open(reference).convert("RGB")
     if left.size != right.size:
