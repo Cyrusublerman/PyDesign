@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from pydesign.runtime import WorkerClient
+from pydesign.runtime.build_cache import BuildCache
 
 
 def write_counting_project(root: Path, *, deterministic: bool = True) -> None:
@@ -60,6 +61,7 @@ class EvaluationCacheTests(unittest.TestCase):
                 (root / ".pydesign" / "execution-count.txt").read_text(encoding="utf-8"),
                 "1",
             )
+            self.assertEqual(list((root / ".pydesign" / "cache").glob("*.tmp")), [])
 
     def test_non_deterministic_project_bypasses_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -103,6 +105,12 @@ class EvaluationCacheTests(unittest.TestCase):
                 (root / ".pydesign" / "execution-count.txt").read_text(encoding="utf-8"),
                 "2",
             )
+
+    def test_cache_dependency_must_remain_inside_project(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            cache = BuildCache(directory)
+            with self.assertRaisesRegex(ValueError, "escapes project root"):
+                cache.key_for(relative_paths=("../outside.py",))
 
 
 if __name__ == "__main__":
