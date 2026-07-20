@@ -3,25 +3,32 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pydesign.runtime import WorkerClient
 from pydesign.runtime.build_cache import BuildCache
+from pydesign.runtime.evaluate import evaluate_project
 
 
-def write_counting_project(root: Path, *, deterministic: bool = True) -> None:
+def write_counting_project(
+    root: Path,
+    *,
+    deterministic: bool = True,
+    module_name: str = "document",
+) -> None:
     (root / "project.toml").write_text(
         (
             "[project]\n"
             "format = 1\n"
             "name = 'Evaluation Cache Test'\n"
-            "entrypoint = 'document:build'\n"
+            f"entrypoint = '{module_name}:build'\n"
             "\n"
             "[build]\n"
             f"deterministic = {'true' if deterministic else 'false'}\n"
         ),
         encoding="utf-8",
     )
-    (root / "document.py").write_text(
+    (root / f"{module_name}.py").write_text(
         (
             "from pydesign import BuildContext, Document, Page, Rectangle\n"
             "\n"
@@ -111,6 +118,24 @@ class EvaluationCacheTests(unittest.TestCase):
             cache = BuildCache(directory)
             with self.assertRaisesRegex(ValueError, "escapes project root"):
                 cache.key_for(relative_paths=("../outside.py",))
+
+    def test_cache_initialization_failure_does_not_fail_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_counting_project(root, module_name="cache_failure_document")
+
+            with patch(
+                "pydesign.runtime.evaluate.BuildCache",
+                side_effect=OSError("cache unavailable"),
+            ):
+                result = evaluate_project(root)
+
+            self.assertIs(result.get("ok"), True)
+            self.assertIs(result.get("cache_hit"), False)
+            self.assertEqual(
+                (root / ".pydesign" / "execution-count.txt").read_text(encoding="utf-8"),
+                "1",
+            )
 
 
 if __name__ == "__main__":
