@@ -48,39 +48,44 @@ def evaluate_project(
     cache: BuildCache | None = None
     cache_key: str | None = None
     if config.deterministic:
-        cache = BuildCache(config.root)
-        cache_key = cache.key_for(
-            relative_paths=(),
-            salt=json.dumps(
-                {
-                    "cache_schema": _EVALUATION_CACHE_SCHEMA,
-                    "profile": selected_profile,
-                    "revision": revision,
-                    "runtime": runtime_fingerprint,
-                },
-                sort_keys=True,
-                separators=(",", ":"),
-            ),
-        )
-        cached = cache.load_json(cache_key)
-        if (
-            isinstance(cached, dict)
-            and cached.get("cache_schema") == _EVALUATION_CACHE_SCHEMA
-            and cached.get("revision") == revision
-            and cached.get("runtime") == runtime_fingerprint
-        ):
-            layout = cached.get("layout")
-            diagnostics = cached.get("diagnostics")
-            if isinstance(layout, dict) and isinstance(diagnostics, list):
-                return {
-                    "protocol_version": 1,
-                    "ok": True,
-                    "revision": revision,
-                    "project": project,
-                    "layout": layout,
-                    "diagnostics": diagnostics,
-                    "cache_hit": True,
-                }
+        try:
+            cache = BuildCache(config.root)
+            cache_key = cache.key_for(
+                relative_paths=(),
+                salt=json.dumps(
+                    {
+                        "cache_schema": _EVALUATION_CACHE_SCHEMA,
+                        "profile": selected_profile,
+                        "revision": revision,
+                        "runtime": runtime_fingerprint,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            )
+            cached = cache.load_json(cache_key)
+        except OSError:
+            cache = None
+            cache_key = None
+        else:
+            if (
+                isinstance(cached, dict)
+                and cached.get("cache_schema") == _EVALUATION_CACHE_SCHEMA
+                and cached.get("revision") == revision
+                and cached.get("runtime") == runtime_fingerprint
+            ):
+                layout = cached.get("layout")
+                diagnostics = cached.get("diagnostics")
+                if isinstance(layout, dict) and isinstance(diagnostics, list):
+                    return {
+                        "protocol_version": 1,
+                        "ok": True,
+                        "revision": revision,
+                        "project": project,
+                        "layout": layout,
+                        "diagnostics": diagnostics,
+                        "cache_hit": True,
+                    }
 
     context = BuildContext(
         root=config.root,
@@ -113,16 +118,17 @@ def evaluate_project(
             "cache_hit": False,
         }
         if cache is not None and cache_key is not None:
-            cache.store_json(
-                cache_key,
-                {
-                    "cache_schema": _EVALUATION_CACHE_SCHEMA,
-                    "revision": revision,
-                    "runtime": runtime_fingerprint,
-                    "layout": payload["layout"],
-                    "diagnostics": payload["diagnostics"],
-                },
-            )
+            with contextlib.suppress(OSError, TypeError, ValueError):
+                cache.store_json(
+                    cache_key,
+                    {
+                        "cache_schema": _EVALUATION_CACHE_SCHEMA,
+                        "revision": revision,
+                        "runtime": runtime_fingerprint,
+                        "layout": payload["layout"],
+                        "diagnostics": payload["diagnostics"],
+                    },
+                )
         return payload
     finally:
         if sys.path and sys.path[0] == str(config.root):
