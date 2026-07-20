@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +13,7 @@ try:
     import reportlab
 
     from pydesign.pdf import PdfExportError, export_layout_pdf
+    from pydesign.pdf.proof import run_proof
 except ImportError:
     pikepdf = None  # type: ignore[assignment]
     reportlab = None  # type: ignore[assignment]
@@ -124,6 +126,27 @@ class PdfExportTests(unittest.TestCase):
             ):
                 export_layout_pdf(vector_layout(), output)
             self.assertEqual(output.read_bytes(), b"prior output")
+
+    @unittest.skipUnless(shutil.which("pdftoppm") is not None, "Poppler pdftoppm unavailable")
+    def test_proof_compares_against_reference_raster(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "proof.pdf"
+            export_layout_pdf(vector_layout(), output)
+
+            initial = run_proof(output, root)
+            self.assertTrue(initial.ok, initial.message)
+            pages = sorted(initial.output_dir.glob("page-*.png"))
+            self.assertEqual(len(pages), 1)
+            references = initial.output_dir / "reference"
+            references.mkdir()
+            shutil.copy2(pages[0], references / pages[0].name)
+
+            compared = run_proof(output, root)
+            self.assertTrue(compared.ok, compared.message)
+            self.assertTrue(compared.compared)
+            self.assertEqual(compared.max_diff, 0.0)
+            self.assertTrue((compared.output_dir / f"diff-{pages[0].name}").is_file())
 
 
 if __name__ == "__main__":
