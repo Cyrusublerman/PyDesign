@@ -1,0 +1,20 @@
+[project]
+format = 1
+id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+name = "Typography Corpus"
+entrypoint = "document:build"
+default_profile = "screen"
+
+[python]
+requires = ">=3.12"
+
+[paths]
+assets = ["assets", "content", "fonts"]
+exports = "exports"
+
+[build]
+deterministic = true
+allow_system_fonts = false
+
+[profiles.screen]
+kind = "display-list"

@@ -269,7 +269,7 @@ def _write_starter_project(root: Path, *, name: str, project_id: str) -> None:
         "from pages.page_001 import page\n\n\n"
         "def build(ctx: BuildContext) -> Document:\n"
         "    return Document(\n"
-        "        id=\"document\",\n"
+        '        id="document",\n'
         f"        title={name!r},\n"
         "        pages=[page(ctx)],\n"
         "    )\n",
@@ -280,7 +280,7 @@ def _write_starter_project(root: Path, *, name: str, project_id: str) -> None:
         "from pydesign import BuildContext, Page, mm\n\n\n"
         "def page(_ctx: BuildContext) -> Page:\n"
         "    return Page(\n"
-        "        id=\"page-001\",\n"
+        '        id="page-001",\n'
         "        size=(210 * mm, 297 * mm),\n"
         "        elements=[],\n"
         "    )\n",
@@ -289,12 +289,7 @@ def _write_starter_project(root: Path, *, name: str, project_id: str) -> None:
     for package in ("components", "styles", "profiles"):
         (root / package / "__init__.py").write_text("", encoding="utf-8")
     (root / ".gitignore").write_text(
-        ".pydesign/\n"
-        "exports/\n"
-        "build/\n"
-        ".venv/\n"
-        "__pycache__/\n"
-        "*.py[cod]\n",
+        ".pydesign/\nexports/\nbuild/\n.venv/\n__pycache__/\n*.py[cod]\n",
         encoding="utf-8",
     )
     (root / "README.md").write_text(

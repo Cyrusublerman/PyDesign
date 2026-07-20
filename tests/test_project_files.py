@@ -71,9 +71,7 @@ class ProjectFileTests(unittest.TestCase):
             source = root / "Source"
             destination = root / "Copy"
             create_project(source, name="Source", source_checkout=root / "checkout")
-            (source / "assets" / "images" / "picture.txt").write_text(
-                "asset", encoding="utf-8"
-            )
+            (source / "assets" / "images" / "picture.txt").write_text("asset", encoding="utf-8")
             for relative in (".pydesign/cache/data", "exports/out.pdf", "build/temp.bin"):
                 path = source / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,9 +85,7 @@ class ProjectFileTests(unittest.TestCase):
             )
 
             self.assertEqual(
-                (destination / "assets" / "images" / "picture.txt").read_text(
-                    encoding="utf-8"
-                ),
+                (destination / "assets" / "images" / "picture.txt").read_text(encoding="utf-8"),
                 "asset",
             )
             self.assertFalse((destination / ".pydesign").exists())

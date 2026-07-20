@@ -118,18 +118,57 @@ def _shape_candidate(
     language: str,
     features: Mapping[str, int | bool] | None,
 ) -> GlyphRun:
+    from pydesign.text.bidi import itemise_bidi
+
     segment = text[start : opportunity.index].rstrip(" \t\r\n")
     if opportunity.kind == BreakKind.HYPHEN:
         segment += "\u2010"
-    run = shape_text(
-        face,
-        segment,
-        font_size=font_size,
-        language=language,
-        features=features,
+    if not segment:
+        run = shape_text(
+            face,
+            "",
+            font_size=font_size,
+            language=language,
+            features=features,
+            source_start=start,
+        )
+        return replace(run, source_end=opportunity.index)
+    runs = itemise_bidi(segment)
+    if len(runs) == 1:
+        run = shape_text(
+            face,
+            runs[0].text,
+            font_size=font_size,
+            language=language,
+            features=features,
+            direction=runs[0].direction,
+            source_start=start,
+        )
+        return replace(run, source_end=opportunity.index)
+    glyphs: list[object] = []
+    first: GlyphRun | None = None
+    cursor = start
+    for bidi_run in runs:
+        shaped = shape_text(
+            face,
+            bidi_run.text,
+            font_size=font_size,
+            language=language,
+            features=features,
+            direction=bidi_run.direction,
+            source_start=cursor,
+        )
+        first = first or shaped
+        glyphs.extend(shaped.glyphs)
+        cursor += len(bidi_run.text)
+    assert first is not None
+    return replace(
+        first,
+        text=segment,
+        glyphs=tuple(glyphs),  # type: ignore[arg-type]
         source_start=start,
+        source_end=opportunity.index,
     )
-    return replace(run, source_end=opportunity.index)
 
 
 def _merged_breaks(opportunities: list[BreakOpportunity]) -> tuple[BreakOpportunity, ...]:

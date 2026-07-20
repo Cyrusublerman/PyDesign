@@ -41,9 +41,7 @@ class WorkerAndCliTests(unittest.TestCase):
             with redirect_stdout(stdout):
                 new_code = main(["new", str(project), "--name", "Publication"])
                 duplicate_code = main(["duplicate", str(project), str(duplicate)])
-                package_code = main(
-                    ["package", str(duplicate), "--output", str(package)]
-                )
+                package_code = main(["package", str(duplicate), "--output", str(package)])
             self.assertEqual(new_code, 0, stdout.getvalue())
             self.assertEqual(duplicate_code, 0, stdout.getvalue())
             self.assertEqual(package_code, 0, stdout.getvalue())

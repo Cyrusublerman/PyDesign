@@ -7,12 +7,25 @@ from pathlib import Path
 
 from PySide6.QtCore import QSettings, QStandardPaths
 
+from pydesign.gui.keymap import dump_keymap_json, merge_keymap, parse_keymap_json
+
 
 class ApplicationSettings:
     """Small typed facade over platform-native Qt application settings."""
 
     def __init__(self, backend: QSettings | None = None) -> None:
         self._backend = backend or QSettings()
+
+    def keymap(self) -> dict[str, str]:
+        raw = str(self._backend.value("keyboard/keymap", "{}"))
+        return merge_keymap(parse_keymap_json(raw))
+
+    def set_keymap(self, keymap: dict[str, str]) -> None:
+        self._backend.setValue("keyboard/keymap", dump_keymap_json(merge_keymap(keymap)))
+        self._backend.sync()
+
+    def shortcut(self, command_id: str) -> str:
+        return self.keymap().get(command_id, "")
 
     def default_projects_directory(self) -> Path:
         configured = str(self._backend.value("projects/defaultDirectory", "")).strip()

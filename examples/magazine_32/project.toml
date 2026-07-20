@@ -1,0 +1,6 @@
+[project]
+name = "Magazine 32"
+id = "magazine-32-fixture"
+format = 1
+module = "document"
+entry = "build"

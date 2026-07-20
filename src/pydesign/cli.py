@@ -17,6 +17,7 @@ from pydesign.runtime import (
     duplicate_project,
     package_project,
 )
+from pydesign.runtime.package_output import package_for_output
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,11 +37,17 @@ def build_parser() -> argparse.ArgumentParser:
     duplicate.add_argument("--name", default=None)
     duplicate.add_argument("--allow-in-source-checkout", action="store_true")
 
-    package = subcommands.add_parser(
-        "package", help="validate and package portable project inputs"
-    )
+    package = subcommands.add_parser("package", help="validate and package portable project inputs")
     _project_arguments(package)
     package.add_argument("--output", type=Path, required=True)
+
+    package_out = subcommands.add_parser(
+        "package-for-output",
+        help="package authored inputs plus a published PDF for offline rebuild",
+    )
+    _project_arguments(package_out)
+    package_out.add_argument("--output", type=Path, required=True)
+    package_out.add_argument("--pdf", type=Path, default=None)
 
     check = subcommands.add_parser("check", help="evaluate and validate a project")
     _project_arguments(check)
@@ -58,6 +65,19 @@ def build_parser() -> argparse.ArgumentParser:
     _project_arguments(build_pdf)
     build_pdf.add_argument("--output", type=Path, required=True)
     build_pdf.add_argument("--manifest", type=Path, default=None)
+    build_pdf.add_argument(
+        "--pdf-profile",
+        default="vector",
+        choices=("vector", "pdfx4"),
+        help="export profile (pdfx4 records output-intent metadata)",
+    )
+
+    proof = subcommands.add_parser(
+        "proof", help="rasterize a PDF proof under .pydesign/proof (Poppler when available)"
+    )
+    _project_arguments(proof)
+    proof.add_argument("--pdf", type=Path, required=True)
+    proof.add_argument("--dpi", type=int, default=72)
 
     open_command = subcommands.add_parser("open", help="open the desktop application")
     open_command.add_argument("project", type=Path, nargs="?", default=None)
@@ -114,6 +134,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"wrote {package_result.output} ({package_result.file_count} project files)")
         print(f"package manifest {package_result.manifest_sha256[:12]}")
         return 0
+    if args.command == "package-for-output":
+        if not result.ok:
+            _print_human_result(result.response, result.stderr)
+            return 2
+        try:
+            output_package = package_for_output(
+                args.project, args.output, pdf_path=getattr(args, "pdf", None)
+            )
+        except (OSError, ValueError) as error:
+            print(f"ERROR: {error}")
+            return 2
+        print(
+            f"wrote {output_package.output} ({output_package.file_count} files; "
+            f"pdf={'yes' if output_package.included_pdf else 'no'})"
+        )
+        return 0
     if args.command == "check":
         if args.as_json:
             print(json.dumps(result.response, ensure_ascii=False, indent=2, sort_keys=True))
@@ -132,7 +168,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not result.ok or result.layout is None:
             _print_human_result(result.response, result.stderr)
             return 2
-        return _build_pdf(result.layout, args.output, args.manifest)
+        return _build_pdf(
+            result.layout,
+            args.output,
+            args.manifest,
+            profile=getattr(args, "pdf_profile", "vector"),
+            project=args.project,
+        )
+    if args.command == "proof":
+        if not result.ok:
+            _print_human_result(result.response, result.stderr)
+            return 2
+        return _run_proof(args.project, args.pdf, args.dpi)
     raise AssertionError(f"unhandled command {args.command}")
 
 
@@ -214,22 +261,63 @@ def _open_gui(project: Path | None) -> int:
     return run(project)
 
 
-def _build_pdf(layout: dict[str, Any], output: Path, manifest: Path | None) -> int:
+def _build_pdf(
+    layout: dict[str, Any],
+    output: Path,
+    manifest: Path | None,
+    *,
+    profile: str = "vector",
+    project: Path | None = None,
+) -> int:
     try:
         from pydesign.pdf import PdfExportError, export_layout_pdf
+        from pydesign.pdf.preflight import load_waivers, preflight_layout
     except ImportError as error:
         print("PDF dependencies are unavailable. Install with: pip install 'pydesign[pdf]'")
         print(f"Details: {error}")
         return 3
+    waivers = load_waivers(project) if project is not None else ()
+    issues = preflight_layout(layout, profile=profile, asset_root=project, waivers=waivers)
+    blocking = [item for item in issues if item.severity == "error"]
+    if blocking:
+        for item in blocking:
+            print(f"ERROR {item.code}: {item.message}")
+        return 2
+    for item in issues:
+        print(f"{item.severity.upper()} {item.code}: {item.message}")
     try:
-        result = export_layout_pdf(layout, output, manifest_path=manifest)
+        result = export_layout_pdf(
+            layout,
+            output,
+            manifest_path=manifest,
+            profile=profile,
+            asset_root=project,
+            waivers=waivers,
+        )
     except (OSError, PdfExportError) as error:
         print(f"ERROR: {error}")
         return 2
+    if profile == "pdfx4":
+        from pydesign.pdf.validate_pdfx4 import validate_pdfx4
+
+        for issue in validate_pdfx4(output):
+            print(f"ERROR {issue.code}: {issue.message}")
+            return 2
     manifest_output = manifest or output.with_name(f"{output.name}.manifest.json")
     print(f"wrote {output}")
     print(f"wrote {manifest_output} ({result.pdf_sha256[:12]})")
     return 0
+
+
+def _run_proof(project: Path, pdf: Path, dpi: int) -> int:
+    try:
+        from pydesign.pdf.proof import run_proof
+    except ImportError as error:
+        print(f"ERROR: {error}")
+        return 3
+    result = run_proof(pdf, project, dpi=dpi)
+    print(result.message)
+    return 0 if result.ok else 2
 
 
 def _run_typography_command(args: argparse.Namespace) -> int:

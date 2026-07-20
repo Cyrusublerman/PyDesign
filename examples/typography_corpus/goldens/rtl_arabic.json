@@ -1,0 +1,71 @@
+{
+  "direction": "rtl",
+  "features": {},
+  "font": {
+    "face_index": 0,
+    "file_sha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+    "instance_sha256": "5c23390e4150c510c209f62df15642dc715dd56171c1993cb42905e541f79c4d",
+    "synthetic_bold": 0.0,
+    "synthetic_slant": 0.0,
+    "variations": {}
+  },
+  "font_size": 14.0,
+  "glyphs": [
+    {
+      "bounds": {
+        "height": -8.5244140625,
+        "width": 6.685546875,
+        "x_bearing": 0.95703125,
+        "y_bearing": 5.1611328125
+      },
+      "cluster": 3,
+      "glyph_id": 1390,
+      "glyph_name": "uni0645",
+      "unsafe_to_break": false,
+      "x_advance": 8.66796875,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -10.7734375,
+        "width": 7.916015625,
+        "x_bearing": 0.57421875,
+        "y_bearing": 10.63671875
+      },
+      "cluster": 1,
+      "glyph_id": 5366,
+      "glyph_name": "uniFEFC",
+      "unsafe_to_break": true,
+      "x_advance": 8.353515625,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -5.3251953125,
+        "width": 10.705078125,
+        "x_bearing": -0.13671875,
+        "y_bearing": 5.126953125
+      },
+      "cluster": 0,
+      "glyph_id": 5293,
+      "glyph_name": "uniFEB3",
+      "unsafe_to_break": false,
+      "x_advance": 11.73046875,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    }
+  ],
+  "language": "ar",
+  "script": "Arab",
+  "source_end": 4,
+  "source_start": 0,
+  "text": "سلام",
+  "units_per_em": 2048,
+  "x_advance": 28.751953125,
+  "y_advance": 0.0
+}

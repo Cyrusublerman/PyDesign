@@ -8,6 +8,7 @@ from typing import Protocol
 from PySide6.QtGui import QUndoCommand
 
 from pydesign.source import SourceEditPlan, SourceTransactionError, apply_source_edit
+from pydesign.source.format_source import finalize_edit_plan
 
 
 class SourceCommandHost(Protocol):
@@ -18,6 +19,7 @@ class SourceCommandHost(Protocol):
 
 class SourcePlanCommand(QUndoCommand):
     def __init__(self, window: SourceCommandHost, plan: SourceEditPlan) -> None:
+        plan = finalize_edit_plan(plan)
         super().__init__(plan.description)
         self.window = window
         self.plan = plan

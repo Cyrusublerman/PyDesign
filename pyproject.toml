@@ -78,7 +78,7 @@ module = ["pydesign.gui.*"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = ["fontTools.*", "pikepdf", "reportlab.*", "uharfbuzz"]
+module = ["fontTools.*", "freetype", "icu", "pikepdf", "reportlab.*", "uharfbuzz"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

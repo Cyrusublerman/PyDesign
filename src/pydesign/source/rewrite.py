@@ -103,6 +103,43 @@ def plan_rectangle_insertion(
     frame: Frame,
     fill: str = "#8d62d9",
 ) -> SourceEditPlan:
+    return _plan_shape_insertion(
+        project_root,
+        page_id,
+        object_id=object_id,
+        frame=frame,
+        fill=fill,
+        constructor="Rectangle",
+    )
+
+
+def plan_ellipse_insertion(
+    project_root: str | Path,
+    page_id: str,
+    *,
+    object_id: str,
+    frame: Frame,
+    fill: str = "#8d62d9",
+) -> SourceEditPlan:
+    return _plan_shape_insertion(
+        project_root,
+        page_id,
+        object_id=object_id,
+        frame=frame,
+        fill=fill,
+        constructor="Ellipse",
+    )
+
+
+def _plan_shape_insertion(
+    project_root: str | Path,
+    page_id: str,
+    *,
+    object_id: str,
+    frame: Frame,
+    fill: str,
+    constructor: str,
+) -> SourceEditPlan:
     index = build_source_index(project_root)
     if index.get(object_id) is not None:
         raise SourceRewriteError(f"stable ID {object_id!r} already exists")
@@ -111,16 +148,56 @@ def plan_rectangle_insertion(
         raise SourceRewriteError(f"{page_id!r} does not identify a Page declaration")
     source = page.path.read_text(encoding="utf-8")
     module = cst.parse_module(source)
-    transformer = _RectangleInsertionTransformer(page_id, object_id, frame, fill)
+    transformer = _ShapeInsertionTransformer(page_id, object_id, frame, fill, constructor)
     updated = module.visit(transformer)
     if not transformer.changed:
         raise SourceRewriteError(f"could not insert into Page {page_id!r}")
-    updated = ensure_pydesign_imports(updated, {"Rectangle", "pt"})
+    updated = ensure_pydesign_imports(updated, {constructor, "pt"})
     return SourceEditPlan(
         path=page.path,
         before=source,
         after=updated.code,
-        description=f"Create rectangle {object_id}",
+        description=f"Create {constructor.lower()} {object_id}",
+        object_id=object_id,
+        property_name="elements",
+        strategy="insert",
+    )
+
+
+def plan_line_insertion(
+    project_root: str | Path,
+    page_id: str,
+    *,
+    object_id: str,
+    start: Point,
+    end: Point,
+    stroke: str = "#5b32a3",
+) -> SourceEditPlan:
+    index = build_source_index(project_root)
+    if index.get(object_id) is not None:
+        raise SourceRewriteError(f"stable ID {object_id!r} already exists")
+    page = index.require(page_id)
+    if page.constructor != "Page":
+        raise SourceRewriteError(f"{page_id!r} does not identify a Page declaration")
+    source = page.path.read_text(encoding="utf-8")
+    module = cst.parse_module(source)
+    expression = cst.parse_expression(
+        "BezierPath("
+        f"id={object_id!r}, commands=("
+        f"MoveTo({point_code(start[0])}, {point_code(start[1])}), "
+        f"LineTo({point_code(end[0])}, {point_code(end[1])})), "
+        f"fill=None, stroke={stroke!r})"
+    )
+    transformer = _ElementInsertionTransformer(page_id, expression)
+    updated = module.visit(transformer)
+    if not transformer.changed:
+        raise SourceRewriteError(f"could not insert into Page {page_id!r}")
+    updated = ensure_pydesign_imports(updated, {"BezierPath", "LineTo", "MoveTo", "pt"})
+    return SourceEditPlan(
+        path=page.path,
+        before=source,
+        after=updated.code,
+        description=f"Create line {object_id}",
         object_id=object_id,
         property_name="elements",
         strategy="insert",
@@ -256,19 +333,27 @@ class _FrameTransformer(cst.CSTTransformer):
         return value.with_changes(elements=elements)
 
 
-class _RectangleInsertionTransformer(cst.CSTTransformer):
-    def __init__(self, page_id: str, object_id: str, frame: Frame, fill: str) -> None:
+class _ShapeInsertionTransformer(cst.CSTTransformer):
+    def __init__(
+        self,
+        page_id: str,
+        object_id: str,
+        frame: Frame,
+        fill: str,
+        constructor: str,
+    ) -> None:
         self.page_id = page_id
         self.object_id = object_id
         self.frame = frame
         self.fill = fill
+        self.constructor = constructor
         self.changed = False
 
     def leave_Call(self, original_node: cst.Call, updated_node: cst.Call) -> cst.Call:
         if call_id(original_node) != self.page_id:
             return updated_node
         expression = cst.parse_expression(
-            "Rectangle("
+            f"{self.constructor}("
             f"id={self.object_id!r}, "
             f"frame=({point_code(self.frame[0])}, {point_code(self.frame[1])}, "
             f"{point_code(self.frame[2])}, {point_code(self.frame[3])}), "

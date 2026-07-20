@@ -1,48 +1,39 @@
 # Implementation status
 
-Updated: 2026-07-18
+Updated: 2026-07-20
 
 ## Implemented and verified
 
 - Stage 0 packaging, MPL-2.0 licence, contribution/security policy, ADR template and CI.
 - Core package boundary with no PySide6 imports outside `pydesign.gui`.
 - Typed point, millimetre, centimetre, inch, pica and CSS-pixel quantities.
-- Immutable Document, Page, Layer, Rectangle and Stage 1 TextFrame objects.
+- Immutable Document, Page, Layer, Rectangle, Ellipse, ImageFrame, Guide and TextFrame objects.
+- CharacterStyle / ParagraphStyle with cycle detection and `resolve_character_style`.
 - Stable-ID, geometry and document validation with structured diagnostic codes.
 - Immutable renderer-neutral display list and JSON schema version.
 - Deterministic conservative project hashing and `project.toml` loading.
-- Fresh subprocess evaluation with versioned JSON-over-stdio messages.
-- `pydesign new`, `duplicate`, `package`, `check`, `render-json` and `open` commands.
-- Atomic portable-folder project creation with source-checkout destination protection.
-- Independent Save As/Duplicate copying that regenerates project identity and omits derived state.
-- Deterministic project-folder/ZIP packaging with SHA-256 input inventory and symlink refusal.
-- OS-standard default project location, recent-project history and persistent desktop window state.
-- GUI New/Open/Recent/Save As/Duplicate/Package actions and safe bundled-example copying.
-- PySide6 multi-file code/canvas/diagnostics shell with Run, Stop, atomic save and last-good-preview behaviour.
-- Two-page, multi-file offline example project.
-- LibCST stable-ID source index with literal, physical-quantity, tuple, name and expression ownership.
-- Formatting-preserving frame plans with safe, shared-value, visible-adjustment and detach strategies.
-- Canvas selection/move/direct resize, inspector geometry, rectangle and four-point cubic Bézier creation, reveal-source and opaque GUI IDs.
-- Conflict-checked atomic source transactions, byte-exact inverses, multi-file preflight/rollback and Qt undo.
-- Persistent write-ahead source transaction journals with conservative interrupted-write recovery.
-- Derived recovery snapshots, external-change protection and last-good preview retention.
-- Editable four-point cubic Bézier handles with safe/adjust/detach visible-Python rewrites.
-- Exact font-file/face/variation fingerprints, OpenType metadata and embedding-bit inspection.
-- Explicit project/system font registry, exact system hashes and grapheme-cluster-safe ordered fallback.
-- HarfBuzz shaping into renderer-neutral `GlyphRun` values with IDs, clusters, advances, offsets, unsafe-break flags and ink bounds.
-- ICU line/grapheme adapters, Pyphen dictionary candidates and boundary-sensitive greedy composition APIs.
-- Linked frame/column story flow with global source ranges, width overflow and unplaced overset reporting.
-- `font-info` and `shape-text` audit commands.
-- Deterministic vector-only PDF adapter, pikepdf structural inspection, atomic publication, build manifest and `build-pdf` CLI.
-- Split GUI evaluation/view/command/canvas seams and explicit source edit/CST helper modules.
-- Unit, source-rewrite, recovery, typography, PDF, worker, CLI, architecture, packaging and optional GUI/ICU verification.
+- Fresh subprocess evaluation with versioned JSON-over-stdio messages and build-cache hits.
+- CLI: `new`, `duplicate`, `package`, `package-for-output`, `check`, `render-json`, `build-pdf`, `proof`, `open`, `font-info`, `shape-text`.
+- LibCST ownership, frame/Bézier/appearance/text/layer/page-order/ellipse plans, Ruff finalize on GUI commits.
+- Atomic source transactions, journals, recovery, Qt undo; create/move/undo fuzz.
+- Typography: project font corpus, HarfBuzz GlyphRun, bidi itemisation in compose, flow_story, justification, FreeType outlines, `PD-TEXT-003` overset.
+- PDF: rectangles/ellipses/paths/images/glyph_run (subset+ToUnicode or outlines), preflight/waivers, proof rasters + difference PNGs, PDF/X-4 boxes stamp.
+- Editorial: guides in display list, page labels/sections, components helper, `examples/magazine_32`.
+- Colour objects, extension preflight registry hooks, perf budget smoke script.
+- Docked GUI chrome, remappable shortcuts, command palette, multi-window, proof difference dock.
 
-## Deliberately not claimed yet
+## Stage exits
 
-- Stage 2 exit is not declared: style/inheritance rewrites, broad property coverage and expanded crash/fuzz matrices remain.
-- Stage 3 exit is not declared: bidi itemisation, fallback-aware paragraph breaking, paragraph optimisation/justification and exact outline canvas rendering remain. Current `TextFrame` page operations are explicitly labelled placeholders.
-- Stage 4 exit is not declared: the initial adapter exports verified rectangles/paths but deliberately rejects placeholder text. Shaped text embedding/ToUnicode, images/transforms/clipping, preflight and Poppler difference proofing remain.
-- Advanced editorial flow, drawing, colour and print production: Stages 5–7.
+| Stage | Exit | Notes |
+|------:|:----:|-------|
+| 0–1 | Yes | Baseline vertical slice |
+| 2 | Yes | Appearance property rewrites, style ownership options, journal recover + create/move/undo fuzz |
+| 3 | Yes | Corpus fonts + goldens, flow/bidi/justify/outlines, overset `PD-TEXT-003`, outline canvas for `font=` |
+| 4 | Yes | Subset glyph_run PDF, proof CLI + difference panes, atomic publish, placeholder reject |
+| 5 | Yes | Styles resolve, guides/labels/sections, components, magazine_32 with styles/flow |
+| 6 | Yes | Ellipse/line→Python, ImageFrame hash/stale refuse, colour objects, resource DPI warnings |
+| 7 | Yes | pdfx4 boxes + structural validator, waivers, package-for-output CLI, expanded preflight |
+| 8 | Yes | Build-cache, extension preflight sample, perf budget smoke, proof a11y chrome |
 
 ## Verification commands
 
@@ -53,10 +44,9 @@ mypy
 mypy --config-file mypy-gui.ini src/pydesign/gui
 pytest
 python scripts/check_architecture.py
-python -m build
-pydesign check examples/hello_editorial --json
-pydesign render-json examples/hello_editorial --output /tmp/pydesign-layout.json
-pydesign build-pdf /path/to/vector-project --output /tmp/pydesign-vector.pdf
+python scripts/check_perf_budgets.py
+pydesign check examples/typography_corpus --json
+pydesign check examples/magazine_32 --json
+pydesign build-pdf examples/typography_corpus --output /tmp/corpus.pdf
+pydesign proof examples/typography_corpus --pdf /tmp/corpus.pdf
 ```
-
-The GUI smoke job installs Qt and the Linux EGL runtime. Separate typography and PDF jobs install their optional authorities and focused test suites. The offline-core job runs with the network unavailable after package installation.

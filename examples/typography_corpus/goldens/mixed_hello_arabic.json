@@ -1,0 +1,183 @@
+{
+  "direction": "ltr",
+  "features": {},
+  "font": {
+    "face_index": 0,
+    "file_sha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+    "instance_sha256": "5c23390e4150c510c209f62df15642dc715dd56171c1993cb42905e541f79c4d",
+    "synthetic_bold": 0.0,
+    "synthetic_slant": 0.0,
+    "variations": {}
+  },
+  "font_size": 14.0,
+  "glyphs": [
+    {
+      "bounds": {
+        "height": -10.2060546875,
+        "width": 7.779296875,
+        "x_bearing": 1.3740234375,
+        "y_bearing": 10.2060546875
+      },
+      "cluster": 0,
+      "glyph_id": 43,
+      "glyph_name": "H",
+      "unsafe_to_break": false,
+      "x_advance": 10.52734375,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -8.0390625,
+        "width": 7.095703125,
+        "x_bearing": 0.7724609375,
+        "y_bearing": 7.8408203125
+      },
+      "cluster": 1,
+      "glyph_id": 72,
+      "glyph_name": "e",
+      "unsafe_to_break": false,
+      "x_advance": 8.61328125,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -10.63671875,
+        "width": 1.2578125,
+        "x_bearing": 1.3193359375,
+        "y_bearing": 10.63671875
+      },
+      "cluster": 2,
+      "glyph_id": 79,
+      "glyph_name": "l",
+      "unsafe_to_break": false,
+      "x_advance": 3.8896484375,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -10.63671875,
+        "width": 1.2578125,
+        "x_bearing": 1.3193359375,
+        "y_bearing": 10.63671875
+      },
+      "cluster": 3,
+      "glyph_id": 79,
+      "glyph_name": "l",
+      "unsafe_to_break": false,
+      "x_advance": 3.8896484375,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -8.0390625,
+        "width": 7.02734375,
+        "x_bearing": 0.7724609375,
+        "y_bearing": 7.8408203125
+      },
+      "cluster": 4,
+      "glyph_id": 82,
+      "glyph_name": "o",
+      "unsafe_to_break": false,
+      "x_advance": 8.5654296875,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": 0.0,
+        "width": 0.0,
+        "x_bearing": 0.0,
+        "y_bearing": 0.0
+      },
+      "cluster": 5,
+      "glyph_id": 3,
+      "glyph_name": "space",
+      "unsafe_to_break": false,
+      "x_advance": 4.4501953125,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -8.544921875,
+        "width": 15.0390625,
+        "x_bearing": 0.888671875,
+        "y_bearing": 5.126953125
+      },
+      "cluster": 6,
+      "glyph_id": 1377,
+      "glyph_name": "uni0633",
+      "unsafe_to_break": false,
+      "x_advance": 17.08984375,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -12.76953125,
+        "width": 7.9365234375,
+        "x_bearing": 0.9775390625,
+        "y_bearing": 10.63671875
+      },
+      "cluster": 7,
+      "glyph_id": 1389,
+      "glyph_name": "uni0644",
+      "unsafe_to_break": false,
+      "x_advance": 10.171875,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -10.63671875,
+        "width": 1.2578125,
+        "x_bearing": 1.3193359375,
+        "y_bearing": 10.63671875
+      },
+      "cluster": 8,
+      "glyph_id": 1365,
+      "glyph_name": "uni0627",
+      "unsafe_to_break": false,
+      "x_advance": 3.8896484375,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    },
+    {
+      "bounds": {
+        "height": -8.5244140625,
+        "width": 6.685546875,
+        "x_bearing": 0.95703125,
+        "y_bearing": 5.1611328125
+      },
+      "cluster": 9,
+      "glyph_id": 1390,
+      "glyph_name": "uni0645",
+      "unsafe_to_break": false,
+      "x_advance": 8.66796875,
+      "x_offset": 0.0,
+      "y_advance": 0.0,
+      "y_offset": 0.0
+    }
+  ],
+  "language": "und",
+  "script": "Latn",
+  "source_end": 10,
+  "source_start": 0,
+  "text": "Hello سلام",
+  "units_per_em": 2048,
+  "x_advance": 79.7548828125,
+  "y_advance": 0.0
+}

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from PySide6.QtCore import QObject
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QToolBar,
+    QWidget,
 )
 
 from pydesign.gui.settings import ApplicationSettings
@@ -37,17 +39,18 @@ class ProjectLifecycleMixin:
     def install_project_actions(
         self, file_menu: QMenu, toolbar: QToolBar, save_action: QAction
     ) -> None:
-        new_action = QAction("New Project…", self)  # type: ignore[arg-type]
+        parent = cast(QObject, self)
+        new_action = QAction("New Project…", parent)
         new_action.setShortcut("Ctrl+N")
         new_action.triggered.connect(self.new_project)
-        open_action = QAction("Open Project…", self)  # type: ignore[arg-type]
+        open_action = QAction("Open Project…", parent)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.choose_project)
-        save_as_action = QAction("Save Project As…", self)  # type: ignore[arg-type]
+        save_as_action = QAction("Save Project As…", parent)
         save_as_action.triggered.connect(self.save_project_as)
-        duplicate_action = QAction("Duplicate Project…", self)  # type: ignore[arg-type]
+        duplicate_action = QAction("Duplicate Project…", parent)
         duplicate_action.triggered.connect(self.duplicate_current_project)
-        package_action = QAction("Package Project…", self)  # type: ignore[arg-type]
+        package_action = QAction("Package Project…", parent)
         package_action.triggered.connect(self.package_current_project)
 
         file_menu.addAction(new_action)
@@ -70,21 +73,24 @@ class ProjectLifecycleMixin:
             return
         name = destination.name
         config = self._with_checkout_confirmation(
-            lambda allow: create_project(
-                destination, name=name, allow_in_source_checkout=allow
-            )
+            lambda allow: create_project(destination, name=name, allow_in_source_checkout=allow)
         )
         if config is not None:
-            self.open_project(config.root, offer_example_copy=False)  # type: ignore[attr-defined]
+            self.open_project(config.root, offer_example_copy=False)
 
     def choose_project(self) -> None:
         recent = self.settings.recent_projects()
         initial = recent[0].parent if recent else self.settings.default_projects_directory()
         directory = QFileDialog.getExistingDirectory(
-            self, "Open PyDesign project", str(_existing_parent(initial))  # type: ignore[arg-type]
+            cast(QWidget, self),
+            "Open PyDesign project",
+            str(_existing_parent(initial)),
         )
         if directory:
-            self.open_project(Path(directory))  # type: ignore[attr-defined]
+            self.open_project(Path(directory))
+
+    def open_project(self, root: Path, *, offer_example_copy: bool = True) -> None:
+        raise NotImplementedError
 
     def prepare_project_open(self, root: Path, *, offer_example_copy: bool) -> Path | None:
         resolved = root.expanduser().resolve()
@@ -169,7 +175,7 @@ class ProjectLifecycleMixin:
             return
         config = self._duplicate_to(destination)
         if config is not None:
-            self.open_project(config.root, offer_example_copy=False)  # type: ignore[attr-defined]
+            self.open_project(config.root, offer_example_copy=False)
 
     def duplicate_current_project(self) -> None:
         if not self._save_before_project_operation():
@@ -233,10 +239,11 @@ class ProjectLifecycleMixin:
         )
 
     def _duplicate_to(self, destination: Path) -> Any | None:
-        assert self.project_root is not None
+        source = self.project_root
+        assert source is not None
         return self._with_checkout_confirmation(
             lambda allow: duplicate_project(
-                self.project_root,
+                source,
                 destination,
                 name=destination.name,
                 allow_in_source_checkout=allow,
@@ -249,9 +256,7 @@ class ProjectLifecycleMixin:
             return False
         return bool(self.save_source())  # type: ignore[attr-defined]
 
-    def _with_checkout_confirmation(
-        self, operation: Callable[[bool], Any]
-    ) -> Any | None:
+    def _with_checkout_confirmation(self, operation: Callable[[bool], Any]) -> Any | None:
         try:
             return operation(False)
         except UnsafeProjectLocationError as error:
@@ -280,7 +285,9 @@ class ProjectLifecycleMixin:
         except OSError:
             default_root = _existing_parent(default_root)
         parent = QFileDialog.getExistingDirectory(
-            self, title, str(default_root)  # type: ignore[arg-type]
+            cast(QWidget, self),
+            title,
+            str(default_root),
         )
         if not parent:
             return None

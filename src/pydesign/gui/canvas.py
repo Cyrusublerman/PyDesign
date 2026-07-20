@@ -1,210 +1,39 @@
-"""Interactive page canvas and direct-manipulation tools."""
+"""Interactive page canvas, tools and touchpad-friendly view navigation."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QPointF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal  # QRectF used by helpers
+from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen, QTransform
 from PySide6.QtWidgets import (
     QGraphicsItem,
-    QGraphicsLineItem,
     QGraphicsPathItem,
     QGraphicsRectItem,
     QGraphicsScene,
-    QGraphicsSceneMouseEvent,
     QGraphicsView,
 )
 
+from pydesign.gui.canvas_items import EditableBezierItem, EditableFrameItem
+from pydesign.gui.canvas_text import paint_glyph_run
+from pydesign.gui.canvas_view import CanvasNavigationMixin, ViewMode
 from pydesign.gui.types import BezierPoints, PageRegion
 from pydesign.source import Frame
 
-
-class EditableFrameItem(QGraphicsRectItem):
-    """Movable/resizable scene proxy that commits on interaction release."""
-
-    def __init__(
-        self,
-        *,
-        object_id: str,
-        page_id: str,
-        page_y: float,
-        frame: Frame,
-        commit: Callable[[str, Frame, Frame], None],
-    ) -> None:
-        x, y, width, height = frame
-        super().__init__(0.0, 0.0, width, height)
-        self.object_id = object_id
-        self.page_id = page_id
-        self.page_y = page_y
-        self.source_frame = frame
-        self._press_position = QPointF(x, page_y + y)
-        self._commit = commit
-        self.setPos(x, page_y + y)
-        self.setData(0, object_id)
-        self.setToolTip(object_id)
-        self.resize_handle = FrameResizeHandle(self)
-        self.resize_handle.setVisible(False)
-        self.setFlags(
-            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
-            | QGraphicsItem.GraphicsItemFlag.ItemIsMovable
-            | QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
-        )
-
-    def frame_points(self) -> Frame:
-        return (
-            self.pos().x(),
-            self.pos().y() - self.page_y,
-            self.rect().width(),
-            self.rect().height(),
-        )
-
-    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self._press_position = self.pos()
-        super().mousePressEvent(event)
-
-    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        super().mouseReleaseEvent(event)
-        if self.pos() == self._press_position:
-            return
-        self._commit(self.object_id, self.source_frame, self.frame_points())
-
-    def set_frame_size(self, width: float, height: float) -> None:
-        self.setRect(0.0, 0.0, max(1.0, width), max(1.0, height))
-        self.resize_handle.setPos(self.rect().width(), self.rect().height())
-
-    def commit_resize(self, previous: Frame) -> None:
-        desired = self.frame_points()
-        if desired != previous:
-            self._commit(self.object_id, previous, desired)
-
-    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
-        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
-            self.resize_handle.setVisible(bool(value))
-        return super().itemChange(change, value)
+# Compatibility export for smoke tests and external imports.
+__all__ = ["EditableBezierItem", "PageCanvas"]
 
 
-class FrameResizeHandle(QGraphicsRectItem):
-    """Bottom-right direct-manipulation handle for an editable frame."""
-
-    def __init__(self, owner: EditableFrameItem) -> None:
-        super().__init__(-4.0, -4.0, 8.0, 8.0, owner)
-        self.owner = owner
-        self.previous = owner.frame_points()
-        self.setToolTip("Resize frame")
-        self.setBrush(QColor("#ffffff"))
-        self.setPen(QPen(QColor("#5b32a3"), 1.0))
-        self.setCursor(Qt.CursorShape.SizeFDiagCursor)
-        self.setZValue(1000.0)
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
-        self.setPos(owner.rect().width(), owner.rect().height())
-
-    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.previous = self.owner.frame_points()
-        event.accept()
-
-    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        local = self.owner.mapFromScene(event.scenePos())
-        self.owner.set_frame_size(local.x(), local.y())
-        event.accept()
-
-    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.owner.commit_resize(self.previous)
-        event.accept()
-
-
-class EditableBezierItem(QGraphicsPathItem):
-    """One cubic segment with four directly editable source-backed points."""
-
-    def __init__(
-        self,
-        *,
-        object_id: str,
-        page_y: float,
-        points: BezierPoints,
-        commit: Callable[[str, BezierPoints, BezierPoints], None],
-    ) -> None:
-        super().__init__()
-        self.object_id = object_id
-        self.page_y = page_y
-        self.source_points = points
-        self._commit = commit
-        self._scene_points = [QPointF(x, page_y + y) for x, y in points]
-        self.control_lines = [QGraphicsLineItem(self), QGraphicsLineItem(self)]
-        for line in self.control_lines:
-            line.setPen(QPen(QColor("#8d62d9"), 0.75, Qt.PenStyle.DashLine))
-            line.setVisible(False)
-        self.handles = [BezierControlHandle(self, index) for index in range(4)]
-        self.setData(0, object_id)
-        self.setToolTip(object_id)
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-        self._update_geometry()
-
-    def points_local(self) -> BezierPoints:
-        return tuple((point.x(), point.y() - self.page_y) for point in self._scene_points)  # type: ignore[return-value]
-
-    def set_control_point(self, index: int, point: QPointF) -> None:
-        self._scene_points[index] = point
-        self._update_geometry()
-
-    def commit_points(self, previous: BezierPoints) -> None:
-        desired = self.points_local()
-        if desired != previous:
-            self._commit(self.object_id, previous, desired)
-
-    def _update_geometry(self) -> None:
-        start, control_1, control_2, end = self._scene_points
-        path = QPainterPath(start)
-        path.cubicTo(control_1, control_2, end)
-        self.setPath(path)
-        self.control_lines[0].setLine(start.x(), start.y(), control_1.x(), control_1.y())
-        self.control_lines[1].setLine(control_2.x(), control_2.y(), end.x(), end.y())
-        for handle, point in zip(self.handles, self._scene_points, strict=True):
-            handle.setPos(point)
-
-    def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: Any) -> Any:
-        if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
-            visible = bool(value)
-            for handle in self.handles:
-                handle.setVisible(visible)
-            for line in self.control_lines:
-                line.setVisible(visible)
-        return super().itemChange(change, value)
-
-
-class BezierControlHandle(QGraphicsRectItem):
-    def __init__(self, owner: EditableBezierItem, index: int) -> None:
-        super().__init__(-4.0, -4.0, 8.0, 8.0, owner)
-        self.owner = owner
-        self.index = index
-        self.previous = owner.source_points
-        self.setBrush(QColor("#ffffff") if index in {0, 3} else QColor("#8d62d9"))
-        self.setPen(QPen(QColor("#5b32a3"), 1.0))
-        self.setCursor(Qt.CursorShape.CrossCursor)
-        self.setZValue(1000.0)
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
-        self.setVisible(False)
-
-    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.previous = self.owner.points_local()
-        event.accept()
-
-    def mouseMoveEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.owner.set_control_point(self.index, event.scenePos())
-        event.accept()
-
-    def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.owner.commit_points(self.previous)
-        event.accept()
-
-
-class PageCanvas(QGraphicsView):
+class PageCanvas(CanvasNavigationMixin, QGraphicsView):
     object_selected = Signal(str, object)
     frame_committed = Signal(str, object, object)
-    rectangle_created = Signal(str, object)
+    rectangle_created = Signal(str, object, str)
+    text_created = Signal(str, object)
     bezier_created = Signal(str, object)
     bezier_committed = Signal(str, object, object)
+    tool_changed = Signal(str)
+    view_changed = Signal()
+    page_changed = Signal(int)
 
     def __init__(self) -> None:
         self.canvas_scene = QGraphicsScene()
@@ -213,23 +42,88 @@ class PageCanvas(QGraphicsView):
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing)
         self.setBackgroundBrush(QColor("#35383d"))
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.grabGesture(Qt.GestureType.PinchGesture)
         self.canvas_scene.selectionChanged.connect(self._selection_changed)
         self._page_regions: list[PageRegion] = []
         self._object_items: dict[str, QGraphicsItem] = {}
+        self._page_summaries: list[dict[str, Any]] = []
+        self._layer_names: list[str] = []
+        self._layers: list[dict[str, Any]] = []
+        self._document_id = ""
+        self._active_tool = "select"
         self._create_mode: str | None = None
         self._create_origin: QPointF | None = None
         self._create_page: PageRegion | None = None
         self._create_preview: QGraphicsRectItem | None = None
         self._bezier_points: list[QPointF] = []
         self._bezier_preview: QGraphicsPathItem | None = None
+        self._view_mode: ViewMode = "fit"
+        self._current_page = 0
+        self._has_layout = False
+        self._space_pan = False
+        self._saved_transform: QTransform | None = None
+        self._saved_mode: ViewMode = "fit"
+        self._saved_page = 0
+        self._scroll_snap_armed = False
+
+    @property
+    def view_mode(self) -> ViewMode:
+        return self._view_mode
+
+    @property
+    def current_page_index(self) -> int:
+        return self._current_page
+
+    @property
+    def page_summaries(self) -> list[dict[str, Any]]:
+        return list(self._page_summaries)
+
+    @property
+    def layer_names(self) -> list[str]:
+        return list(self._layer_names)
+
+    @property
+    def layers(self) -> list[dict[str, Any]]:
+        return list(self._layers)
+
+    @property
+    def document_id(self) -> str:
+        return self._document_id
 
     def set_layout(self, layout: dict[str, Any]) -> None:
+        restore = self._has_layout
+        if restore:
+            self._saved_transform = QTransform(self.transform())
+            self._saved_mode = self._view_mode
+            self._saved_page = self._current_page
         self.canvas_scene.clear()
         self._page_regions.clear()
         self._object_items.clear()
+        self._page_summaries = []
+        self._layer_names = []
+        self._layers = []
+        self._document_id = ""
+        document = layout.get("document")
+        if isinstance(document, dict):
+            self._document_id = str(document.get("id", ""))
+        layers = layout.get("layers")
+        if isinstance(layers, list):
+            for item in layers:
+                if isinstance(item, dict):
+                    self._layers.append(dict(item))
+                    layer_id = str(item.get("id", ""))
+                    if layer_id:
+                        self._layer_names.append(layer_id)
+                else:
+                    self._layer_names.append(str(item))
         y_offset = 24.0
         pages = layout.get("pages", [])
         if not isinstance(pages, list):
+            self._has_layout = False
             return
         for page_number, page in enumerate(pages, start=1):
             if not isinstance(page, dict):
@@ -238,12 +132,24 @@ class PageCanvas(QGraphicsView):
             width = float(page.get("width", 0.0))
             height = float(page.get("height", 0.0))
             self._page_regions.append(PageRegion(page_id, 0.0, y_offset, width, height))
+            self._page_summaries.append(
+                {"id": page_id, "width": width, "height": height, "index": page_number - 1}
+            )
+            shadow = self.canvas_scene.addRect(
+                4.0,
+                y_offset + 4.0,
+                width,
+                height,
+                QPen(Qt.PenStyle.NoPen),
+                QColor(0, 0, 0, 55),
+            )
+            shadow.setZValue(-1001)
             paper = self.canvas_scene.addRect(
                 0.0,
                 y_offset,
                 width,
                 height,
-                QPen(QColor("#b8bcc2"), 0.75),
+                QPen(QColor("#8b929c"), 1.0),
                 QColor("#ffffff"),
             )
             paper.setZValue(-1000)
@@ -253,23 +159,37 @@ class PageCanvas(QGraphicsView):
                 for operation in operations:
                     if isinstance(operation, dict):
                         self._draw_operation(operation, page_id, y_offset)
+                        layer_name = operation.get("layer")
+                        if isinstance(layer_name, str) and layer_name not in self._layer_names:
+                            self._layer_names.append(layer_name)
             label = self.canvas_scene.addSimpleText(
-                f"{page_number} · {page_id}", QFont("Sans Serif", 7)
+                f"{page_number} · {page_id}", QFont("Sans Serif", 10)
             )
-            label.setBrush(QColor("#d8dbe0"))
-            label.setPos(0.0, y_offset + height + 4.0)
+            label.setBrush(QColor("#f3f4f6"))
+            label.setPos(0.0, y_offset + height + 6.0)
             y_offset += height + 54.0
-        if pages:
-            self.fitInView(
-                self.canvas_scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio
-            )
+        self._has_layout = bool(self._page_regions)
+        if not self._has_layout:
+            return
+        if restore and self._saved_transform is not None:
+            self._current_page = min(self._saved_page, len(self._page_regions) - 1)
+            self._view_mode = self._saved_mode
+            if self._view_mode in {"fit", "fill", "actual", "fit_all"}:
+                self._apply_view_mode(self._view_mode, announce=False)
+            else:
+                self.setTransform(self._saved_transform)
+            self.view_changed.emit()
+            self.page_changed.emit(self._current_page)
+            return
+        self._current_page = 0
+        self.fit_page(0)
 
     def _draw_operation(self, operation: dict[str, Any], page_id: str, page_y: float) -> None:
         kind = operation.get("op")
         if kind == "bezier_path":
             self._draw_bezier_operation(operation, page_y)
             return
-        if kind not in {"rectangle", "text_placeholder"}:
+        if kind not in {"rectangle", "ellipse", "image", "text_placeholder", "glyph_run"}:
             return
         object_id = str(operation.get("object_id", ""))
         frame: Frame = (
@@ -287,30 +207,41 @@ class PageCanvas(QGraphicsView):
         )
         self._object_items[object_id] = item
         self.canvas_scene.addItem(item)
-
-        if kind == "rectangle":
+        if kind in {"rectangle", "ellipse"}:
             fill_value = operation.get("fill")
             stroke_value = operation.get("stroke")
             item.setBrush(
                 QColor(str(fill_value)) if fill_value else QColor(Qt.GlobalColor.transparent)
             )
-            item.setPen(
+            pen = (
                 QPen(QColor(str(stroke_value)), float(operation.get("stroke_width", 1.0)))
                 if stroke_value
                 else QPen(Qt.PenStyle.NoPen)
             )
+            item.set_authored_pen(pen)
             return
-
-        item.setPen(QPen(QColor("#87909c"), 0.5, Qt.PenStyle.DashLine))
-        text = self.canvas_scene.addText(str(operation.get("text", "")))
-        text.setParentItem(item)
-        font = text.font()
-        font.setPointSizeF(max(1.0, float(operation.get("font_size", 12.0))))
-        text.setFont(font)
-        text.setDefaultTextColor(QColor(str(operation.get("colour", "#000000"))))
-        text.setTextWidth(frame[2])
-        text.setPos(0.0, 0.0)
-        text.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        if kind == "image":
+            item.setBrush(QColor("#dbe4f0"))
+            item.set_authored_pen(QPen(QColor("#7c93b2"), 1.0))
+            label = self.canvas_scene.addSimpleText(
+                f"IMG {operation.get('path', '')}", QFont("Sans Serif", 8)
+            )
+            label.setParentItem(item)
+            label.setPos(4.0, 4.0)
+            label.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+            return
+        if kind == "glyph_run":
+            paint_glyph_run(operation, item)
+            return
+        item.set_authored_pen(QPen(QColor("#4b5563"), 1.0, Qt.PenStyle.DashLine))
+        # Placeholder only — not document composition (Stage 3 uses glyph_run outlines).
+        label = self.canvas_scene.addSimpleText(
+            str(operation.get("text", ""))[:80], QFont("Sans Serif", 9)
+        )
+        label.setBrush(QColor(str(operation.get("colour", "#111827"))))
+        label.setParentItem(item)
+        label.setPos(4.0, 4.0)
+        label.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
     def _draw_bezier_operation(self, operation: dict[str, Any], page_y: float) -> None:
         commands = operation.get("commands")
@@ -338,27 +269,36 @@ class PageCanvas(QGraphicsView):
                 path.closeSubpath()
         object_id = str(operation.get("object_id", ""))
         editable_points = _editable_bezier_points(commands)
-        item: QGraphicsPathItem
+        authored = (
+            QPen(QColor(str(operation.get("stroke"))), float(operation.get("stroke_width", 1.0)))
+            if operation.get("stroke")
+            else QPen(Qt.PenStyle.NoPen)
+        )
         if editable_points is not None:
-            item = EditableBezierItem(
+            bezier = EditableBezierItem(
                 object_id=object_id,
                 page_y=page_y,
                 points=editable_points,
                 commit=self._bezier_commit,
             )
+            bezier.setBrush(
+                QColor(str(operation.get("fill")))
+                if operation.get("fill")
+                else QColor(Qt.GlobalColor.transparent)
+            )
+            bezier.set_authored_pen(authored)
+            item: QGraphicsPathItem = bezier
         else:
             item = QGraphicsPathItem(path)
+            item.setBrush(
+                QColor(str(operation.get("fill")))
+                if operation.get("fill")
+                else QColor(Qt.GlobalColor.transparent)
+            )
+            item.setPen(authored)
         item.setData(0, object_id)
         item.setToolTip(object_id)
         item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-        fill = operation.get("fill")
-        stroke = operation.get("stroke")
-        item.setBrush(QColor(str(fill)) if fill else QColor(Qt.GlobalColor.transparent))
-        item.setPen(
-            QPen(QColor(str(stroke)), float(operation.get("stroke_width", 1.0)))
-            if stroke
-            else QPen(Qt.PenStyle.NoPen)
-        )
         self._object_items[object_id] = item
         self.canvas_scene.addItem(item)
 
@@ -383,21 +323,70 @@ class PageCanvas(QGraphicsView):
         item = self._object_items.get(object_id)
         if item is not None:
             item.setSelected(True)
-            self.centerOn(item)
+            self.ensureVisible(item, 40, 40)
 
-    def begin_rectangle(self) -> None:
-        self.cancel_tool()
-        self._create_mode = "rectangle"
-        self.setDragMode(QGraphicsView.DragMode.NoDrag)
-        self.setCursor(Qt.CursorShape.CrossCursor)
+    def clear_selection(self) -> None:
+        self.canvas_scene.clearSelection()
+
+    def set_active_tool(self, tool_id: str, *, shape_variant: str = "rectangle") -> None:
+        if tool_id in {"shape", "rectangle", "ellipse"}:
+            variant = "ellipse" if tool_id == "ellipse" else shape_variant
+            if variant not in {"rectangle", "ellipse"}:
+                self.cancel_create()
+                self._active_tool = "shape"
+                self.setDragMode(QGraphicsView.DragMode.NoDrag)
+                self.setCursor(Qt.CursorShape.ForbiddenCursor)
+                self.tool_changed.emit(self._active_tool)
+                return
+            self.begin_rectangle(variant=variant)
+            return
+        if tool_id in {"pen", "bezier"}:
+            self.begin_bezier()
+            return
+        if tool_id == "line":
+            self.begin_line()
+            return
+        if tool_id == "text":
+            self.begin_text()
+            return
+        self.cancel_create()
+        allowed = {"select", "direct_select", "hand", "zoom"}
+        self._active_tool = tool_id if tool_id in allowed else "select"
+        if self._active_tool == "hand":
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        elif self._active_tool == "zoom":
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        elif self._active_tool == "direct_select":
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            self.setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            self.unsetCursor()
+        self.tool_changed.emit(self._active_tool)
+
+    def begin_rectangle(self, *, variant: str = "rectangle") -> None:
+        from pydesign.gui.canvas_create import begin_rectangle
+
+        begin_rectangle(self, variant=variant)
+
+    def begin_line(self) -> None:
+        from pydesign.gui.canvas_create import begin_line
+
+        begin_line(self)
 
     def begin_bezier(self) -> None:
-        self.cancel_tool()
-        self._create_mode = "bezier"
-        self.setDragMode(QGraphicsView.DragMode.NoDrag)
-        self.setCursor(Qt.CursorShape.CrossCursor)
+        from pydesign.gui.canvas_create import begin_bezier
 
-    def cancel_tool(self) -> None:
+        begin_bezier(self)
+
+    def begin_text(self) -> None:
+        from pydesign.gui.canvas_create import begin_text
+
+        begin_text(self)
+
+    def cancel_create(self) -> None:
         self._create_mode = None
         self._create_origin = None
         self._create_page = None
@@ -408,10 +397,28 @@ class PageCanvas(QGraphicsView):
         if self._bezier_preview is not None:
             self.canvas_scene.removeItem(self._bezier_preview)
             self._bezier_preview = None
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-        self.unsetCursor()
+
+    def cancel_tool(self) -> None:
+        creating = self._create_mode is not None
+        self.cancel_create()
+        if creating:
+            self.set_active_tool("select")
+            return
+        if self.canvas_scene.selectedItems():
+            self.clear_selection()
+            return
+        self.set_active_tool("select")
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        if self._active_tool == "zoom" and event.button() == Qt.MouseButton.LeftButton:
+            if event.modifiers() & Qt.KeyboardModifier.AltModifier:
+                self.zoom_by(1 / 1.25)
+            else:
+                self.zoom_by(1.25)
+            event.accept()
+            return
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         if self._create_mode == "bezier" and event.button() == Qt.MouseButton.LeftButton:
             point = self.mapToScene(event.position().toPoint())
             page = self._create_page or next(
@@ -425,11 +432,15 @@ class PageCanvas(QGraphicsView):
                         (item.x() - page.x, item.y() - page.y) for item in self._bezier_points
                     )  # type: ignore[assignment]
                     page_id = page.page_id
-                    self.cancel_tool()
+                    self.cancel_create()
+                    self.set_active_tool("select")
                     self.bezier_created.emit(page_id, points)
                 event.accept()
                 return
-        if self._create_mode == "rectangle" and event.button() == Qt.MouseButton.LeftButton:
+        if (
+            self._create_mode in {"rectangle", "ellipse", "text", "line"}
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
             point = self.mapToScene(event.position().toPoint())
             page = next((region for region in self._page_regions if region.contains(point)), None)
             if page is not None:
@@ -446,6 +457,13 @@ class PageCanvas(QGraphicsView):
                 event.accept()
                 return
         super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        if self._active_tool == "zoom":
+            self.fit_page(self._current_page)
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if self._create_mode == "bezier" and self._bezier_points:
@@ -480,8 +498,9 @@ class PageCanvas(QGraphicsView):
             self._create_origin is not None
             and self._create_preview is not None
             and self._create_page is not None
-            and self._create_mode == "rectangle"
+            and self._create_mode in {"rectangle", "ellipse", "text", "line"}
         ):
+            mode = self._create_mode
             rectangle = self._create_preview.rect()
             page = self._create_page
             frame: Frame = (
@@ -490,32 +509,67 @@ class PageCanvas(QGraphicsView):
                 rectangle.width(),
                 rectangle.height(),
             )
-            self.cancel_tool()
-            if frame[2] >= 1.0 and frame[3] >= 1.0:
-                self.rectangle_created.emit(page.page_id, frame)
+            self.cancel_create()
+            self.set_active_tool("select")
+            enough = (
+                abs(frame[2]) + abs(frame[3]) >= 1.0
+                if mode == "line"
+                else frame[2] >= 1.0 and frame[3] >= 1.0
+            )
+            if enough:
+                if mode == "text":
+                    self.text_created.emit(page.page_id, frame)
+                else:
+                    self.rectangle_created.emit(page.page_id, frame, mode)
             event.accept()
             return
+        if event.button() == Qt.MouseButton.MiddleButton and self._active_tool not in {
+            "hand",
+            "select",
+        }:
+            self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        if self._scroll_snap_armed or event.button() in {
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.MiddleButton,
+        }:
+            self._scroll_snap_armed = False
+            self._update_current_page_from_view()
+            self._snap_page_if_near()
         super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event: Any) -> None:
-        if event.key() == Qt.Key.Key_Escape and self._create_mode is not None:
+        if event.key() == Qt.Key.Key_Escape:
             self.cancel_tool()
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_PageDown:
+            self.next_page()
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_PageUp:
+            self.previous_page()
+            event.accept()
+            return
+        if event.key() == Qt.Key.Key_Space and not event.isAutoRepeat():
+            self._space_pan = True
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             event.accept()
             return
         super().keyPressEvent(event)
 
-    def wheelEvent(self, event: Any) -> None:
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            factor = 1.15 if event.angleDelta().y() > 0 else 1 / 1.15
-            self.scale(factor, factor)
+    def keyReleaseEvent(self, event: Any) -> None:
+        if event.key() == Qt.Key.Key_Space and self._space_pan:
+            self._space_pan = False
+            if self._active_tool == "zoom":
+                self.setDragMode(QGraphicsView.DragMode.NoDrag)
+            elif self._active_tool in {"select", "direct_select", "hand"}:
+                self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             event.accept()
             return
-        super().wheelEvent(event)
+        super().keyReleaseEvent(event)
 
 
 def _normal_rect(first: QPointF, second: QPointF) -> Any:
-    from PySide6.QtCore import QRectF
-
     return QRectF(first, second).normalized()
 
 

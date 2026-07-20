@@ -95,6 +95,70 @@ class Rectangle(Element):
         object.__setattr__(self, "stroke_width", as_length(stroke_width))
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Ellipse(Element):
+    frame: Rect
+    fill: str | None = "#000000"
+    stroke: str | None = None
+    stroke_width: Length = field(default_factory=lambda: Length(1.0))
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        frame: RectLike,
+        label: str | None = None,
+        visible: bool = True,
+        printable: bool = True,
+        fill: str | None = "#000000",
+        stroke: str | None = None,
+        stroke_width: LengthLike = 1.0,
+    ) -> None:
+        object.__setattr__(self, "id", id)
+        object.__setattr__(self, "label", label)
+        object.__setattr__(self, "visible", visible)
+        object.__setattr__(self, "printable", printable)
+        object.__setattr__(self, "frame", _rect(frame))
+        object.__setattr__(self, "fill", fill)
+        object.__setattr__(self, "stroke", stroke)
+        object.__setattr__(self, "stroke_width", as_length(stroke_width))
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ImageFrame(Element):
+    frame: Rect
+    path: str
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        frame: RectLike,
+        path: str,
+        label: str | None = None,
+        visible: bool = True,
+        printable: bool = True,
+    ) -> None:
+        object.__setattr__(self, "id", id)
+        object.__setattr__(self, "label", label)
+        object.__setattr__(self, "visible", visible)
+        object.__setattr__(self, "printable", printable)
+        object.__setattr__(self, "frame", _rect(frame))
+        object.__setattr__(self, "path", str(path))
+
+
+@dataclass(frozen=True, slots=True)
+class Guide:
+    orientation: str
+    position: Length
+
+    def __init__(self, orientation: str, position: LengthLike) -> None:
+        if orientation not in {"horizontal", "vertical"}:
+            raise ValueError("guide orientation must be horizontal or vertical")
+        object.__setattr__(self, "orientation", orientation)
+        object.__setattr__(self, "position", as_length(position))
+
+
 @dataclass(frozen=True, slots=True)
 class MoveTo:
     x: Length
@@ -184,6 +248,7 @@ class TextFrame(Element):
     text: str
     font_size: Length = field(default_factory=lambda: Length(12.0))
     colour: str = "#000000"
+    font: str | None = None
 
     def __init__(
         self,
@@ -196,6 +261,7 @@ class TextFrame(Element):
         printable: bool = True,
         font_size: LengthLike = 12.0,
         colour: str = "#000000",
+        font: str | None = None,
     ) -> None:
         object.__setattr__(self, "id", id)
         object.__setattr__(self, "label", label)
@@ -205,9 +271,10 @@ class TextFrame(Element):
         object.__setattr__(self, "text", str(text))
         object.__setattr__(self, "font_size", as_length(font_size))
         object.__setattr__(self, "colour", colour)
+        object.__setattr__(self, "font", font)
 
 
-type LeafElement = BezierPath | Rectangle | TextFrame
+type LeafElement = BezierPath | Rectangle | Ellipse | ImageFrame | TextFrame
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -235,6 +302,9 @@ class Page(Element):
     size: Size
     elements: tuple[LeafElement, ...] = ()
     layers: tuple[Layer, ...] = ()
+    guides: tuple[Guide, ...] = ()
+    page_label: str | None = None
+    section_id: str | None = None
 
     def __init__(
         self,
@@ -243,7 +313,10 @@ class Page(Element):
         size: SizeLike,
         elements: Iterable[LeafElement] = (),
         layers: Iterable[Layer] = (),
+        guides: Iterable[Guide] = (),
         label: str | None = None,
+        page_label: str | None = None,
+        section_id: str | None = None,
         visible: bool = True,
         printable: bool = True,
     ) -> None:
@@ -254,6 +327,9 @@ class Page(Element):
         object.__setattr__(self, "size", _size(size))
         object.__setattr__(self, "elements", tuple(elements))
         object.__setattr__(self, "layers", tuple(layers))
+        object.__setattr__(self, "guides", tuple(guides))
+        object.__setattr__(self, "page_label", page_label)
+        object.__setattr__(self, "section_id", section_id)
 
     def iter_elements(self) -> Iterable[LeafElement]:
         yield from self.elements

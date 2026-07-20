@@ -13,6 +13,7 @@ try:
 
     from pydesign.gui.app import MainWindow, PageCanvas
     from pydesign.gui.canvas import EditableBezierItem
+    from pydesign.gui.diagnostics_format import format_diagnostics_text
     from pydesign.gui.settings import ApplicationSettings
 except ImportError:
     QApplication = None  # type: ignore[assignment,misc]
@@ -21,6 +22,7 @@ except ImportError:
     EditableBezierItem = None  # type: ignore[assignment,misc]
     ApplicationSettings = None  # type: ignore[assignment,misc]
     QSettings = None  # type: ignore[assignment,misc]
+    format_diagnostics_text = None  # type: ignore[assignment]
 
 
 @unittest.skipUnless(
@@ -39,7 +41,14 @@ class GuiSmokeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             backend = QSettings(str(Path(directory) / "settings.ini"), QSettings.Format.IniFormat)
             window = MainWindow(settings=ApplicationSettings(backend))
-            self.assertEqual(window.state_label.text(), "No project")
+            self.assertTrue(window.state_label.text().startswith("No project"))
+            self.assertIn("rail", window.docks)
+            self.assertIn("editor", window.docks)
+            self.assertIn("inspector", window.docks)
+            self.assertIn("diagnostics", window.docks)
+            self.assertEqual(window.toolbox.current_tool(), "select")
+            self.assertEqual(window.toolbox.shape_variant(), "rectangle")
+            self.assertTrue(hasattr(window, "view_bar"))
             window.close()
 
     def test_recent_projects_are_application_state(self) -> None:
@@ -63,6 +72,7 @@ class GuiSmokeTests(unittest.TestCase):
     def test_display_list_creates_page_items(self) -> None:
         assert PageCanvas is not None
         canvas = PageCanvas()
+        canvas.resize(800, 600)
         canvas.set_layout(
             {
                 "pages": [
@@ -102,11 +112,78 @@ class GuiSmokeTests(unittest.TestCase):
                                 "stroke_width": 1,
                             },
                         ],
-                    }
+                    },
+                    {
+                        "id": "page-2",
+                        "width": 100,
+                        "height": 200,
+                        "operations": [],
+                    },
                 ]
             }
         )
         self.assertGreaterEqual(len(canvas.canvas_scene.items()), 3)
+        fit_scale = canvas.zoom_factor()
+        canvas.fit_all()
+        fit_all_scale = canvas.zoom_factor()
+        self.assertGreater(fit_scale, fit_all_scale)
+        canvas.actual_size()
+        self.assertAlmostEqual(canvas.zoom_factor(), 1.0, places=3)
+        canvas.fill_width()
+        self.assertEqual(canvas.view_mode, "fill")
+        previous = canvas.transform()
+        canvas.set_layout(
+            {
+                "pages": [
+                    {"id": "page", "width": 100, "height": 200, "operations": []},
+                    {"id": "page-2", "width": 100, "height": 200, "operations": []},
+                ]
+            }
+        )
+        self.assertEqual(canvas.view_mode, "fill")
+        self.assertEqual(previous.m11(), canvas.transform().m11())
+        box_layout = {
+            "pages": [
+                {
+                    "id": "page",
+                    "width": 100,
+                    "height": 200,
+                    "operations": [
+                        {
+                            "op": "rectangle",
+                            "object_id": "box",
+                            "x": 10,
+                            "y": 10,
+                            "width": 20,
+                            "height": 30,
+                            "fill": "#ff6600",
+                            "stroke": None,
+                            "stroke_width": 1,
+                        },
+                        {
+                            "op": "bezier_path",
+                            "object_id": "curve",
+                            "commands": [
+                                {"command": "move", "x": 10, "y": 60},
+                                {
+                                    "command": "curve",
+                                    "control_1_x": 30,
+                                    "control_1_y": 20,
+                                    "control_2_x": 60,
+                                    "control_2_y": 100,
+                                    "x": 90,
+                                    "y": 60,
+                                },
+                            ],
+                            "fill": None,
+                            "stroke": "#5b32a3",
+                            "stroke_width": 1,
+                        },
+                    ],
+                }
+            ]
+        }
+        canvas.set_layout(box_layout)
         box = canvas._object_items["box"]
         box.setSelected(True)
         self.assertTrue(box.resize_handle.isVisible())
@@ -119,6 +196,19 @@ class GuiSmokeTests(unittest.TestCase):
         assert isinstance(curve, EditableBezierItem)
         curve.setSelected(True)
         self.assertTrue(all(handle.isVisible() for handle in curve.handles))
+
+    def test_diagnostics_are_grouped(self) -> None:
+        assert format_diagnostics_text is not None
+        text = format_diagnostics_text(
+            [
+                {"severity": "warning", "code": "PD-TEXT-001", "message": "placeholder"},
+                {"severity": "warning", "code": "PD-TEXT-001", "message": "placeholder"},
+                {"severity": "warning", "code": "PD-TEXT-001", "message": "placeholder"},
+                {"severity": "warning", "code": "PD-TEXT-001", "message": "placeholder"},
+            ]
+        )
+        self.assertEqual(text.count("PD-TEXT-001"), 1)
+        self.assertIn("x4", text)
 
 
 if __name__ == "__main__":

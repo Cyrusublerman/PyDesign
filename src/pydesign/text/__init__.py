@@ -1,5 +1,6 @@
 """Deterministic font identity and OpenType shaping contracts."""
 
+from pydesign.text.bidi import BidiRun, itemise_bidi
 from pydesign.text.breaks import (
     BreakKind,
     BreakOpportunity,
@@ -26,6 +27,8 @@ from pydesign.text.font import (
     load_font_face,
 )
 from pydesign.text.glyphrun import Glyph, GlyphBounds, GlyphRun
+from pydesign.text.justify import JustificationReport, justify_line
+from pydesign.text.outlines import glyph_outlines
 from pydesign.text.paragraph import ComposedLine, ParagraphLayout, compose_greedy
 from pydesign.text.registry import (
     FontRegistry,
@@ -38,6 +41,7 @@ from pydesign.text.registry import (
 from pydesign.text.shaping import ShapingError, shape_text
 
 __all__ = [
+    "BidiRun",
     "BreakKind",
     "BreakOpportunity",
     "ColumnFlow",
@@ -55,6 +59,7 @@ __all__ = [
     "Glyph",
     "GlyphBounds",
     "GlyphRun",
+    "JustificationReport",
     "MissingGlyphError",
     "ParagraphLayout",
     "PositionedLine",
@@ -65,8 +70,11 @@ __all__ = [
     "UnicodeAuthorityUnavailable",
     "compose_greedy",
     "flow_story",
+    "glyph_outlines",
     "grapheme_clusters",
     "hyphenation_opportunities",
+    "itemise_bidi",
+    "justify_line",
     "line_break_opportunities",
     "load_font_face",
     "shape_text",
