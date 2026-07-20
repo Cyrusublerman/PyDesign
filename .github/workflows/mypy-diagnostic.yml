@@ -1,8 +1,7 @@
 name: Mypy diagnostic
 
 on:
-  push:
-    branches: [agent/deterministic-evaluation-cache]
+  pull_request:
 
 permissions:
   contents: read
@@ -13,9 +12,10 @@ jobs:
     steps:
       - name: Run mypy with compact setup
         env:
+          BRANCH: ${{ github.head_ref }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone --quiet --depth 1 --branch "$GITHUB_REF_NAME" \
+          git clone --quiet --depth 1 --branch "$BRANCH" \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
           cd repo
           python -m pip install --quiet --disable-pip-version-check -e '.[dev]' >/dev/null 2>&1
