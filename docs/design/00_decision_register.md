@@ -79,6 +79,21 @@ This is the compact register of decisions that implementation may rely upon.
 | D-063 | PyDesign source will be released under MPL-2.0. User source, assets and generated output remain the user’s property. Dependency licences are checked in CI and release review. |
 | D-064 | Supported desktop targets are current Windows, macOS and mainstream Linux distributions; exact minimum OS versions are stated per release. |
 
+## Procedural generation, data and integration
+
+| ID | Locked decision |
+|---|---|
+| D-070 | Procedural generation is native document authoring. Generators return normal semantic objects that use the shared layout/display-list/canvas/PDF path. |
+| D-071 | The native creative API uses an explicit graphics/build context. PyDesign has no hidden process-global current canvas, style, transform or random service. |
+| D-072 | A generator has a visible stable ID, typed parameters, explicit seed, stable keyed children, dependency/provenance records and authored live/frozen/baked state. |
+| D-073 | Generator randomness is deterministic by default and supports semantic-key-addressed sampling so unrelated collection changes do not perturb retained children. |
+| D-074 | GUI edits to generated content offer generator/parameter, visible exception, freeze or bake choices. The GUI never silently detaches or hides generated overrides. |
+| D-075 | Data sources are local, fingerprinted and schema/key aware. Changed or incompatible data cannot silently publish stale generated content. |
+| D-076 | Parameter controls, source navigation, generator status and bounded variant comparison are mandatory desktop capabilities. Temporary variants remain view/cache state until applied to source. |
+| D-077 | Third-party libraries cross core boundaries only as native elements/paths, structured text/data, parsed SVG, placed PDF or colour-managed raster assets. |
+| D-078 | Foreign event loops/heavy runtimes such as py5/Processing, browser chart stacks and office applications use isolated adapters or external tools and never become canonical canvas, typography or PDF authorities. |
+| D-079 | A candidate library enters default dependencies only with a shipped vertical capability, offline/platform evidence, deterministic tests and licence/redistribution review. |
+
 ## Verification spikes that do not reopen product decisions
 
 1. Prove that ReportLab can emit positioned shaped glyphs with correct subsetting and ToUnicode maps; otherwise implement the same adapter contract with direct PDF objects.
@@ -86,5 +101,7 @@ This is the compact register of decisions that implementation may rely upon.
 3. Compare FreeType, Qt and exported-PDF raster bounds across the reference font corpus.
 4. Establish PDF/X-4 validation tooling and tolerances usable offline in CI.
 5. Benchmark QGraphicsView with outline glyph caches and thousands of elements; switch viewport implementation without changing interaction contracts if necessary.
+6. Benchmark native generated collections at 10,000/100,000 elements and establish when the viewport compiles packed/batched display operations rather than one Qt item per child.
+7. Verify skia-pathops/Shapely curve/topology adapters and Matplotlib/Altair structured-vector fidelity against the boundary in Specification 13.
 
 Failures in these spikes may change an implementation component through an ADR, but not the visible-source, shared-layout, typographic or export semantics.

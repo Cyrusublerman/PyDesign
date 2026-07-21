@@ -100,6 +100,79 @@ Page thumbnails display section/folio, master/template provenance, size and erro
 
 The tree never fabricates an edit that source cannot represent. Generated repeated pages appear with provenance and offer edit-generator, exception or detach actions.
 
+Large generated collections appear as one collapsible generator/group row with child count, state
+and provenance. Expanding uses virtualized children and stable keys rather than constructing one
+permanent tree widget for every output. Search filters by ID, label, type, style, component,
+generator, data key and diagnostic state.
+
+## Assets, links and data panel
+
+The asset panel covers images, fonts, colour profiles, placed documents and structured data sources.
+Each row reports local path, fingerprint, type, dimensions/schema, profile/adapter, status and usage
+locations. Missing, changed, stale and incompatible states have icon/text labels and navigate to
+affected source and objects.
+
+Relink, replace, embed/package and refresh actions preview their source/project effects. Image rows
+show effective DPI by usage. Data rows show schema, stable key, record count, parser settings and the
+last successfully evaluated fingerprint. The panel never stores authoritative links or parser
+options only in application settings.
+
+## Procedural controls and variant browser
+
+The procedural panel is mandatory for the generative workflow. It provides:
+
+- generator hierarchy, search, source location and output count;
+- typed parameter controls with resolved value, source form and validation;
+- authored/effective seed, reroll and semantic-key reroll actions;
+- live, frozen and baked state plus freeze/thaw/bake commands;
+- dependency, data, cache, runtime and reproducibility status;
+- rebuild, cancel, reveal source and reveal selected generated child;
+- structured diagnostics and traceback;
+- visible exceptions with remove/reveal actions;
+- entry to bounded variant comparison.
+
+Scrubbing applies a provisional value and uses cancellable/coalesced evaluation only when the
+generator declares interactive suitability. Release or explicit Apply commits one source/history
+transaction. Slow generators evaluate on release and keep the last-good result labelled with its
+revision.
+
+The variant browser renders a virtualized matrix of seeds and parameter combinations. Parameters
+can be locked across rows/columns. Unselected variants remain derived view/cache state; Apply writes
+one source transaction and Save Variant writes an explicit named source construct. Closing or
+cancelling the browser changes no authored project state.
+
+## Story editor
+
+The story editor presents long content independently of page zoom while remaining synchronized
+with text frames and source ranges. It provides paragraph/character style provenance, hidden
+characters, language, spelling adapter status, frame-chain position, overset location, word/character
+counts and search/replace.
+
+Qt rich-text facilities may support cursor, selection, input methods and clipboard interaction, but
+the editor never uses Qt layout as the document's line-breaking, shaping or pagination authority.
+
+## History
+
+History describes authored semantic intent, affected source files and broad dependant scope. It
+combines source-editor and canvas/source transactions while keeping zoom, selection and panel state
+in a separate lightweight view history. Examples include “Move cover title 4 mm”, “Edit Body style
+(23 uses)”, “Regenerate cover pattern with seed 1842” and “Bake 80 pattern objects”.
+
+Failed or cancelled evaluation does not create a published document revision. Undoing a parameter,
+exception, freeze or bake operation restores exact prior source bytes and the previous selection
+where its stable IDs still exist.
+
+## Preflight panel
+
+Preflight groups actionable problems by revision, selected export profile, severity and category.
+Baseline checks include missing fonts/assets/data, changed fingerprints, overset text, missing
+glyphs, failed/impure generators, low effective image resolution, colour/profile conflicts,
+unsupported/rasterized effects and objects outside required page boxes.
+
+Activating a problem navigates to the source span, page, object, asset/data row or generator. The
+panel distinguishes current evaluation diagnostics from last-good/export diagnostics and explains
+why a selected profile blocks or permits publication.
+
 ## Diagnostics and failure states
 
 Diagnostics group by current revision and category, not only timestamp. Clicking one focuses its source span and canvas object/page. When the current revision fails, the canvas keeps the last-good snapshot with a prominent “stale from revision …” label and optional ghost of safe provisional changes.
@@ -138,4 +211,3 @@ Application strings are translatable. Python API names, source identifiers, file
 ## First-run and help
 
 First run offers a local example gallery and a five-minute code/canvas tutorial. Every tool links to shipped local reference pages. Generated code is intentionally readable enough to function as instruction. No login, account or network prompt blocks entry.
-

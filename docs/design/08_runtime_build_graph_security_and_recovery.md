@@ -49,6 +49,8 @@ The build graph tracks:
 
 - modules and imported local modules;
 - content/assets/font/profile files read through `BuildContext`;
+- generators, authored parameters, seeds, stable generated children and exceptions;
+- local data sources, schemas, stable record keys and adapter versions;
 - semantic objects and style/component dependencies;
 - text stories → paragraphs → frame chains → pages;
 - resources → display-list operations → pages;
@@ -63,6 +65,10 @@ Workers instrument project imports and `BuildContext` access. Undeclared arbitra
 - Geometry changes invalidate dependent constraints, wraps, hit maps and page operations.
 - Story/style/font changes invalidate affected paragraphs and downstream linked frames.
 - Template/component changes invalidate instances.
+- Generator source/parameter/seed changes invalidate that generator and downstream dependants;
+  key-addressed children preserve unaffected identities and cache entries where proven safe.
+- Data mutations invalidate affected keyed records/repeaters; schema or parser changes invalidate the
+  complete source and its downstream dependants.
 - Output-profile changes reuse semantic/layout data when layout semantics are unchanged but rebuild PDF/proof resources.
 - Unknown Python side effects invalidate the entire semantic snapshot.
 
@@ -123,4 +129,3 @@ The packaged app ships a controlled runtime for built-in libraries. Project-spec
 ## Resource controls
 
 Workers receive configurable CPU concurrency, memory advisory/hard limits where supported, maximum decoded image size, maximum message size and maximum recursion/object count guards. Limits generate actionable diagnostics rather than silently dropping content.
-

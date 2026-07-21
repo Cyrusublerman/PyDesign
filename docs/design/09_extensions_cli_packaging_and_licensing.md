@@ -11,6 +11,8 @@ pydesign.assets      fonts, images, profiles and fingerprints
 pydesign.pdf         PDF adapter, profiles and preflight
 pydesign.runtime     workers, protocol, graph, cache and builds
 pydesign.source      source maps and LibCST transactions
+pydesign.procedural  generators, parameters, deterministic random and lifecycle values
+pydesign.adapters    optional typed data/chart/document/format family adapters
 pydesign.cli         headless commands
 pydesign.gui         Qt application and adapters
 ```
@@ -42,6 +44,11 @@ Installed extensions register Python entry points under versioned groups:
 - `pydesign.cli_commands`.
 
 Each extension declares package/version, PyDesign API range, capabilities, deterministic/offline characteristics, added dependencies and licence. Incompatible extensions are disabled with diagnostics before import.
+
+Library admission, adapter fidelity levels and preferred integration families follow Specification
+13. An extension may cross into the canonical document only as native semantic values, structured
+text/data, parsed SVG, placed PDF or a colour-managed raster asset. A panel-only drawing surface is
+not a document integration.
 
 Project-local modules are the preferred extension mechanism for document components and generators. They need no special registration unless adding application UI/import/export behaviour.
 

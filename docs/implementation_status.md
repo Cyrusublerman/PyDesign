@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated: 2026-07-20
+Updated: 2026-07-21
 
 ## Implemented and verified
 
@@ -35,6 +35,14 @@ Updated: 2026-07-20
 | 7 | Yes | pdfx4 boxes + structural validator, waivers, package-for-output CLI, expanded preflight |
 | 8 | Yes | Build-cache, extension preflight sample, perf budget smoke, proof a11y chrome |
 
+## Baseline 1.1 planning boundary
+
+Procedural generation and library integration are now locked in Specifications 12 and 13 and ADR
+0002. This does not revoke the Stage 0–8 exits above or claim that their implementations satisfy
+every newly expanded 1.1 acceptance statement. Existing related capabilities are marked
+`needs_audit` in `docs/roadmap/backlog.toml` until concrete code/test evidence is mapped; clearly new
+generator, data dependency and procedural-GUI work is separately marked ready or planned.
+
 ## Verification commands
 
 ```bash
@@ -44,6 +52,7 @@ mypy
 mypy --config-file mypy-gui.ini src/pydesign/gui
 pytest
 python scripts/check_architecture.py
+python scripts/check_roadmap.py
 python scripts/check_perf_budgets.py
 pydesign check examples/typography_corpus --json
 pydesign check examples/magazine_32 --json

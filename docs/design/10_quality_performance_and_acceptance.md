@@ -18,7 +18,9 @@ Units, transforms, paths, colour conversions, source rewrite rules, style inheri
 - `GlyphRun` equality between layout consumers;
 - plug-in/API version negotiation;
 - CLI JSON and exit codes;
-- source transaction comment/format preservation.
+- source transaction comment/format preservation;
+- generator parameter/seed/stable-child identity and lifecycle transitions;
+- data/chart/document adapter fidelity, capability and version negotiation.
 
 ### Integration tests
 
@@ -27,6 +29,10 @@ Multi-file evaluation, cancellation/restart, external changes, recovery, image/f
 ### Visual regression
 
 Reference projects exercise editorial grids, dense typography, experimental paths, images/transparency, spot colour and mixed scripts. Internal and Poppler PDF rasters are compared with edge-aware tolerances. Baselines store toolchain/platform class and are reviewed through difference images.
+
+The corpus also includes deterministic keyed random grids, radial/along-path repetition, coherent
+noise/vector fields, data-driven catalogues, generator exceptions, freeze/thaw/bake, variant
+promotion and native/structured/opaque adapter fidelity examples.
 
 ### Accessibility tests
 
@@ -64,6 +70,8 @@ Budgets are measured on a published reference machine and representative project
 | Open 100-page reference project to last-good thumbnails | under 3 s warm cache |
 | Cancel acknowledgement | under 100 ms; forced worker termination under 1 s |
 | Memory, 100-page reference project | under 1.5 GB excluding deliberately huge source images |
+| Parameter feedback, interactive-suitable generator | provisional state under 100 ms; stale work cancellable |
+| Variant browser | first completed thumbnail under 1 s for the simple generator fixture |
 
 Full PDF export budgets are corpus-specific and tracked as pages/second plus peak memory. Performance never justifies semantic divergence or hidden rasterisation.
 
@@ -104,6 +112,10 @@ Automated/manual release candidates complete these tasks without source corrupti
 10. Export PDF/X-4, inspect proof difference and locate an object from a discrepancy.
 11. Recover unsaved source after simulated crash.
 12. Build the same project headlessly.
+13. Adjust a generator parameter/seed, inspect provenance and undo the source change.
+14. Add a generated-child exception, then freeze, thaw and bake with exact undo.
+15. Compare a bounded variant matrix and apply one result without retaining hidden variants.
+16. Refresh a changed keyed data source and verify unchanged records retain selection/identity.
 
 ## Reliability gates
 
@@ -124,4 +136,3 @@ P0 data loss/security, P1 wrong export/source corruption and P2 major authoring 
 ## Definition of done for a capability
 
 A capability is done only when it has public API/source syntax, semantic validation, source mapping/GUI ownership behaviour, layout/display-list support, canvas rendering, appropriate PDF behaviour, diagnostics/preflight, undo/recovery coverage, accessibility path, local documentation and tests. “Works in the canvas” alone is not complete.
-

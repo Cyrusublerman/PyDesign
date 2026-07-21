@@ -37,6 +37,8 @@ Source editing now separates `source.edits` (public immutable plan/value contrac
 | GUI | Refactored into canvas/view/command/evaluation/orchestration seams | Extract editor session before window reaches its 575-line budget |
 | PDF | Optional adapter consumes display-list values and refuses non-authoritative text | Split paint/inspection/manifest modules as shaped text and image operations land |
 | CLI | Acceptable 230-line dispatcher with lazy optional imports | Move export/preflight handlers to command modules as Stage 4 expands |
+| Procedural (planned) | Specification owns explicit-context generators returning semantic values | Introduce generator/parameter/random/lifecycle modules before any GUI panel or foreign sketch runtime |
+| Adapters (planned) | Specification 13 defines typed result/fidelity boundaries | Keep optional libraries in family adapters and workers; never leak their renderer/document types into core |
 
 ## Enforced rules
 
@@ -62,9 +64,19 @@ flowchart TD
     GUI[GUI views and tools] --> Source[Source transactions]
     GUI --> Runtime[Evaluation runtime]
     Runtime --> Layout[Semantic model and layout]
+    Procedural[Procedural authoring] --> Layout
+    Adapters[Data and format adapters] --> Layout
+    GUI --> Procedural
     Layout --> Text[Typography authority]
     PDF[PDF adapter] --> Layout
     Canvas[Canvas renderer] --> Layout
 ```
 
 Source editing does not sit below or inside the semantic model: it is an authoring adapter that turns GUI intent into visible Python and then asks the runtime to rebuild. Canvas and PDF consume one layout contract and must not independently compose document text.
+
+Future `procedural` modules own generator definitions, typed parameters, deterministic random
+services, stable generated identity and lifecycle values. They may depend on renderer-neutral
+document/graphics contracts but not GUI or PDF implementations. Future adapter modules translate a
+single external family and return only the boundary result types in Specification 13. GUI panels
+consume typed provenance/runtime values and issue source intents; they do not call heavyweight
+third-party renderers directly.
