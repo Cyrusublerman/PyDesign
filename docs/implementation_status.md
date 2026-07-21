@@ -12,7 +12,8 @@ Updated: 2026-07-21
 - Stable-ID, geometry and document validation with structured diagnostic codes.
 - Immutable renderer-neutral display list and JSON schema version.
 - Deterministic conservative project hashing and `project.toml` loading.
-- Fresh subprocess evaluation with versioned JSON-over-stdio messages and build-cache hits.
+- Fresh subprocess evaluation with deterministic revision/profile/runtime-keyed cache hits that bypass user-code execution; non-deterministic projects bypass the cache.
+- Atomic cache publication, project-root dependency containment and corrupt-entry recovery.
 - CLI: `new`, `duplicate`, `package`, `package-for-output`, `check`, `render-json`, `build-pdf`, `proof`, `open`, `font-info`, `shape-text`.
 - LibCST ownership, frame/Bézier/appearance/text/layer/page-order/ellipse plans, Ruff finalize on GUI commits.
 - Atomic source transactions, journals, recovery, Qt undo; create/move/undo fuzz.
@@ -33,7 +34,7 @@ Updated: 2026-07-21
 | 5 | Yes | Styles resolve, guides/labels/sections, components, magazine_32 with styles/flow |
 | 6 | Yes | Ellipse/line→Python, ImageFrame hash/stale refuse, colour objects, resource DPI warnings |
 | 7 | Yes | pdfx4 boxes + structural validator, waivers, package-for-output CLI, expanded preflight |
-| 8 | Yes | Build-cache, extension preflight sample, perf budget smoke, proof a11y chrome |
+| 8 | Yes | Deterministic pre-execution build cache, extension preflight sample, perf budget smoke, proof a11y chrome |
 
 ## Baseline 1.1 planning boundary
 
@@ -51,6 +52,7 @@ ruff check .
 mypy
 mypy --config-file mypy-gui.ini src/pydesign/gui
 pytest
+pytest tests/test_evaluation_cache.py
 python scripts/check_architecture.py
 python scripts/check_roadmap.py
 python scripts/check_perf_budgets.py
