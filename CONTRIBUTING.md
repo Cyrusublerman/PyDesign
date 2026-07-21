@@ -11,6 +11,8 @@ python -m pip install -e '.[dev,gui]'
 python -m pytest
 ruff check .
 mypy
+python scripts/check_architecture.py
+python scripts/check_roadmap.py
 ```
 
 The core and tests must also run without the GUI extra:
@@ -26,6 +28,7 @@ python -m pytest
 - Keep `pydesign.gui` out of core imports.
 - Add a changelog entry for user-visible changes.
 - Add an ADR and update traceability when changing the locked baseline.
+- Update `docs/roadmap/backlog.toml` and `docs/implementation_status.md` for completed roadmap tasks.
 - Do not add proprietary fonts, images or documents to fixtures.
 - Record copied/adapted code and its licence in `THIRD_PARTY.md`.
 
@@ -36,4 +39,3 @@ python -m pytest
 3. Exercise headless evaluation with the example project.
 4. Verify the application still works with network unavailable.
 5. Confirm source transactions, output and recovery remain deterministic.
-

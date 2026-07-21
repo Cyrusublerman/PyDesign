@@ -1,8 +1,8 @@
 # PyDesign design baseline
 
 Status: **locked for implementation**  
-Baseline: **1.0**  
-Date: **2026-07-17**
+Baseline: **1.1**
+Date: **2026-07-21**
 
 This directory is the normative product and engineering design for PyDesign. It converts the research phase into testable contracts. Implementation may expose a false assumption, but code must not silently diverge from these documents.
 
@@ -30,6 +30,10 @@ Research explains why a direction was considered. This baseline states what will
 8. The last successful preview remains usable when a newer revision fails.
 9. User Python executes in a disposable worker, never in the GUI process.
 10. Project files remain normal, diffable files that can be edited without PyDesign.
+11. Procedural generators, parameters, seeds, exceptions and lifecycle state are visible authored
+    source; generated output uses normal semantic/layout/display-list contracts.
+12. Third-party libraries enter through declared adapters and cannot create independent canvas,
+    typography or PDF authorities.
 
 ## Specification map
 
@@ -47,7 +51,12 @@ Research explains why a direction was considered. This baseline states what will
 | [09 — Extensions and distribution](09_extensions_cli_packaging_and_licensing.md) | APIs, plug-ins, CLI, packaging, licence policy |
 | [10 — Quality and acceptance](10_quality_performance_and_acceptance.md) | Tests, performance budgets, release gates |
 | [11 — Implementation sequence](11_implementation_sequence.md) | Dependency-ordered slices and exit criteria |
+| [12 — Procedural generation and data](12_procedural_generation_and_data.md) | Generators, parameters, seeds, creative API, data and variants |
+| [13 — Library integration and interchange](13_library_integration_and_interchange.md) | Dependency classes, adapter boundaries and preferred ecosystems |
 | [Requirements traceability](requirements_traceability.md) | Requirement-to-design-to-test mapping |
+
+Execution state and dependency-ordered tasks live in the [delivery roadmap](../roadmap/README.md).
+The roadmap may refine sequencing but cannot weaken this baseline.
 
 ## Normative language
 
@@ -56,4 +65,3 @@ Research explains why a direction was considered. This baseline states what will
 ## Changing the baseline
 
 A change requires an Architecture Decision Record in `docs/adr/`, updates to every affected specification and traceability row, and tests demonstrating the new contract. An ADR records context, decision, consequences, migration and superseded decisions. Product decisions do not live only in issues or source comments.
-

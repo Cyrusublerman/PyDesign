@@ -27,9 +27,14 @@ my_publication/
 │   ├── __init__.py
 │   ├── colour.py
 │   └── typography.py
+├── generators/
+│   ├── __init__.py
+│   └── cover_pattern.py
 ├── content/
+├── data/
 ├── assets/
 ├── fonts/
+├── frozen/
 ├── exports/
 └── .pydesign/
     ├── cache/
@@ -38,7 +43,11 @@ my_publication/
     └── view.json
 ```
 
-Only `project.toml`, Python modules, content/data files and user assets are authored truth. `exports/` is reproducible output. `.pydesign/` is entirely disposable and ignored by version control. No headless build may depend on it.
+Only `project.toml`, Python modules, content/data files, user assets and explicitly authored frozen
+generator snapshots are authored truth. `frozen/` is optional, portable and created only by an
+explicit Freeze operation; it includes a source-visible reference and manifest. It is not a cache.
+`exports/` is reproducible output. `.pydesign/` is entirely disposable and ignored by version
+control. No headless build may depend on it.
 
 ## Repository separation and default location
 
@@ -66,7 +75,7 @@ default_profile = "print"
 requires = ">=3.12"
 
 [paths]
-assets = ["assets", "content", "fonts"]
+assets = ["assets", "content", "data", "fonts", "frozen"]
 exports = "exports"
 
 [colour]

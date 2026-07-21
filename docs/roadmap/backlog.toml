@@ -1,0 +1,1075 @@
+schema_version = 1
+updated = "2026-07-21"
+current_focus = ["QLT-101", "RUN-202", "GEN-501"]
+
+statuses = ["ready", "in_progress", "planned", "needs_audit", "blocked", "done", "deferred"]
+priorities = ["critical", "high", "normal", "low"]
+milestones = ["M1", "M2", "M3", "M4", "M5", "M6", "post-1.0"]
+workstreams = [
+  "source",
+  "runtime",
+  "document",
+  "typography",
+  "graphics",
+  "images-colour",
+  "procedural",
+  "data-interchange",
+  "gui",
+  "pdf-preflight",
+  "extensions-packaging",
+  "quality",
+]
+
+[[task]]
+id = "QLT-101"
+title = "Baseline 1.1 implementation conformance audit"
+description = "Map current Stage 0–8 code and tests to the expanded 1.1 requirements, marking proven work done and splitting concrete gaps."
+workstream = "quality"
+stage = "baseline-1.1"
+milestone = "M1"
+status = "ready"
+priority = "critical"
+depends_on = []
+requirements = ["R-QLT-003"]
+specifications = ["10", "12", "13"]
+acceptance = [
+  "Every needs_audit backlog item links to concrete implementation/tests or is split into precise remaining work.",
+  "Existing stage exits and working capabilities are preserved; implementation status and roadmap no longer contradict each other.",
+]
+
+[[task]]
+id = "SRC-201"
+title = "Style and inheritance source ownership"
+description = "Resolve style references, inherited values and explicit overrides into safe, visible source edit plans."
+workstream = "source"
+stage = "2"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = []
+requirements = ["R-SRC-002", "R-SRC-003", "R-UI-002"]
+specifications = ["02", "06"]
+acceptance = [
+  "Inspector reports resolved value, owner, inheritance chain and explicit override state.",
+  "Shared-style, local-override, remove-override and detach plans preserve formatting and undo byte-exactly.",
+]
+
+[[task]]
+id = "SRC-202"
+title = "Broad property-family source editing"
+description = "Generalise narrow geometry/path rewriting into ownership-specific modules for paint, text, frame, style and parameter properties."
+workstream = "source"
+stage = "2"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["SRC-201"]
+requirements = ["R-SRC-002", "R-SRC-003", "R-SRC-004"]
+specifications = ["02", "03", "05", "12"]
+acceptance = [
+  "Each supported property family exposes literal, shared, computed and inherited edit choices.",
+  "The source package remains split by ownership family and passes architecture boundaries.",
+]
+
+[[task]]
+id = "SRC-203"
+title = "Source transaction fault and fuzz matrix"
+description = "Close Stage 2 recovery risk with randomized rewrites, multi-file failures, external changes and journal recovery."
+workstream = "source"
+stage = "2"
+milestone = "M1"
+status = "needs_audit"
+priority = "high"
+depends_on = ["SRC-202"]
+requirements = ["R-SRC-002", "R-SRC-006", "R-RUN-005"]
+specifications = ["02", "08", "10"]
+acceptance = [
+  "Injected interruption at every transaction phase leaves either the complete old or complete new source revision.",
+  "Randomized edit/undo sequences restore byte-identical project files.",
+]
+
+[[task]]
+id = "SRC-204"
+title = "Project refactor transactions"
+description = "Implement safe module move/rename and import updates as reviewed multi-file source transactions."
+workstream = "source"
+stage = "2"
+milestone = "M2"
+status = "planned"
+priority = "normal"
+depends_on = ["SRC-203"]
+requirements = ["R-SRC-005", "R-SRC-006"]
+specifications = ["02"]
+acceptance = [
+  "Move and rename previews show all affected imports and explicit page-order effects.",
+  "Failure and undo restore all paths and bytes without partial refactors.",
+]
+
+[[task]]
+id = "RUN-201"
+title = "Typed revision, cancellation and stale-result state"
+description = "Move build lifecycle semantics into shared runtime values used consistently by GUI and CLI."
+workstream = "runtime"
+stage = "2"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = []
+requirements = ["R-UI-003", "R-RUN-003"]
+specifications = ["06", "08"]
+acceptance = [
+  "Queued, running, cancelled, failed, stale and published revisions have typed transitions.",
+  "Out-of-order and cancelled workers cannot publish over a newer successful revision.",
+]
+
+[[task]]
+id = "RUN-202"
+title = "Dependency graph and incremental invalidation"
+description = "Track module, asset, font, data and semantic dependencies with full-build equivalence tests."
+workstream = "runtime"
+stage = "10"
+milestone = "M2"
+status = "ready"
+priority = "high"
+depends_on = []
+requirements = ["R-RUN-004", "R-GEN-005"]
+specifications = ["08", "12"]
+acceptance = [
+  "A mutation matrix proves incremental and clean builds produce identical semantic/display hashes.",
+  "Diagnostics explain why each invalidated node rebuilt.",
+]
+
+[[task]]
+id = "RUN-203"
+title = "Worker resource policies"
+description = "Add configurable time, process, output and memory safeguards for expensive local evaluation."
+workstream = "runtime"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["RUN-201", "GEN-501"]
+requirements = ["R-RUN-003", "R-GEN-009"]
+specifications = ["08", "12"]
+acceptance = [
+  "Timeout and output limits cancel work without blocking editing or corrupting last-good state.",
+  "The UI and CLI report which policy stopped the worker and how to change it.",
+]
+
+[[task]]
+id = "TXT-301"
+title = "ICU bidi and script itemisation"
+description = "Create paragraph runs with resolved direction, script and language before HarfBuzz shaping."
+workstream = "typography"
+stage = "3"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["RUN-201"]
+requirements = ["R-TXT-001", "R-TXT-002"]
+specifications = ["04"]
+acceptance = [
+  "Mixed-direction and mixed-script corpus matches expected logical/visual run order and source mapping.",
+  "Itemisation remains renderer-neutral and independent of Qt text layout.",
+]
+
+[[task]]
+id = "TXT-302"
+title = "Fallback-aware paragraph shaping"
+description = "Resolve cluster-safe fallback across complete paragraphs before candidate line composition."
+workstream = "typography"
+stage = "3"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["TXT-301"]
+requirements = ["R-TXT-002", "R-TXT-006"]
+specifications = ["04"]
+acceptance = [
+  "Combining marks, emoji sequences and missing glyphs never split unsafely across fallback fonts.",
+  "Fallback choices and exact font fingerprints are exposed in diagnostics and glyph runs.",
+]
+
+[[task]]
+id = "TXT-303"
+title = "Optimised paragraph breaking"
+description = "Implement deterministic paragraph optimisation over legal ICU, hyphenation and shaping boundaries."
+workstream = "typography"
+stage = "3"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["TXT-302"]
+requirements = ["R-TXT-003", "R-TXT-005"]
+specifications = ["04"]
+acceptance = [
+  "Reference paragraphs produce stable expected breaks across repeated runs.",
+  "The composer reports overflow, rejected break causes and hyphenation provenance.",
+]
+
+[[task]]
+id = "TXT-304"
+title = "Professional justification and optical adjustments"
+description = "Add spacing, glyph expansion policy, script-aware opportunities and optical-margin controls."
+workstream = "typography"
+stage = "3"
+milestone = "M1"
+status = "needs_audit"
+priority = "high"
+depends_on = ["TXT-303"]
+requirements = ["R-TXT-003", "R-TXT-005"]
+specifications = ["04"]
+acceptance = [
+  "Justification priorities and limits are authored style values with deterministic diagnostics.",
+  "Latin and selected complex-script fixtures avoid illegal spacing and match expected line widths.",
+]
+
+[[task]]
+id = "TXT-305"
+title = "Exact glyph-outline canvas operations"
+description = "Convert positioned glyph runs to shared outline/display operations without Qt layout."
+workstream = "typography"
+stage = "3"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["TXT-302"]
+requirements = ["R-TXT-004"]
+specifications = ["04", "07"]
+acceptance = [
+  "Canvas display operations preserve glyph IDs, offsets, transforms, font instance and source range.",
+  "Outline bounds agree with FontTools/FreeType reference fixtures within declared tolerance.",
+]
+
+[[task]]
+id = "TXT-306"
+title = "Editorial flow controls"
+description = "Complete keeps, widows/orphans, column balancing, exclusions and downstream linked-frame invalidation."
+workstream = "typography"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "high"
+depends_on = ["TXT-304", "DOC-502"]
+requirements = ["R-TXT-003", "R-TXT-005"]
+specifications = ["04"]
+acceptance = [
+  "A multipage story fixture deterministically reports and resolves keeps, exclusions and overset.",
+  "Editing an upstream frame invalidates only affected downstream story flow.",
+]
+
+[[task]]
+id = "PDF-401"
+title = "Shaped glyph PDF embedding and ToUnicode"
+description = "Place shared glyph runs, subset exact font instances and build valid searchable text mapping."
+workstream = "pdf-preflight"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["TXT-305"]
+requirements = ["R-TXT-004", "R-PDF-002"]
+specifications = ["04", "07"]
+acceptance = [
+  "PDF positions are derived from the same glyph-run operations used by the canvas.",
+  "pikepdf inspection and extraction fixtures validate subsets, encoding and ToUnicode.",
+]
+
+[[task]]
+id = "PDF-402"
+title = "Images, transforms, clipping and transparency"
+description = "Extend the project-owned adapter to the baseline non-text graphics-state operations."
+workstream = "pdf-preflight"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "high"
+depends_on = ["PDF-401", "IMG-601"]
+requirements = ["R-GFX-002", "R-PDF-001"]
+specifications = ["05", "07"]
+acceptance = [
+  "Reference operations preserve order, transforms, clips, opacity and supported blend semantics.",
+  "Unsupported operations fail or disclose a tested fallback instead of silently diverging.",
+]
+
+[[task]]
+id = "PDF-403"
+title = "Poppler proof and mapped difference view"
+description = "Rasterise published PDFs locally and compare them with the canvas reference by page and object."
+workstream = "pdf-preflight"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["PDF-401"]
+requirements = ["R-PDF-004"]
+specifications = ["06", "07"]
+acceptance = [
+  "Proof, difference and split views share page/zoom navigation and retain the raw difference.",
+  "Difference regions map to likely display operations and stable object IDs.",
+]
+
+[[task]]
+id = "PDF-404"
+title = "Initial profile-aware preflight"
+description = "Implement structured source/object/page-linked checks and profile-specific blocking severity."
+workstream = "pdf-preflight"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "high"
+depends_on = ["PDF-401"]
+requirements = ["R-PDF-005", "R-UI-009"]
+specifications = ["06", "07"]
+acceptance = [
+  "Missing fonts/assets, overset, unsupported effects and export limitations navigate to source and object.",
+  "The same diagnostic has tested severity for standard PDF and future print profiles.",
+]
+
+[[task]]
+id = "PDF-405"
+title = "Stage 4 structural and visual parity corpus"
+description = "Close the parity gate with multilingual text, vector, image and failure reference projects."
+workstream = "pdf-preflight"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["PDF-402", "PDF-403", "PDF-404", "TXT-304"]
+requirements = ["R-MOD-005", "R-QLT-002", "R-QLT-003"]
+specifications = ["07", "10"]
+acceptance = [
+  "Reference projects pass published structure, extraction, geometry and pixel-difference thresholds.",
+  "A separate stage review records remaining limitations before M1 is declared complete.",
+]
+
+[[task]]
+id = "DOC-501"
+title = "Pages, spreads, sections and folios"
+description = "Complete the multipage semantic/layout model with explicit ordering and facing-page relationships."
+workstream = "document"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["PDF-405"]
+requirements = ["R-SRC-005", "R-UI-006"]
+specifications = ["01", "03", "06"]
+acceptance = [
+  "Variable-size pages, spreads, sections and page labels compile to stable explicit page order.",
+  "Reorder/add/delete/duplicate GUI actions produce reviewed source transactions and undo.",
+]
+
+[[task]]
+id = "DOC-502"
+title = "Margins, columns, grids and guides"
+description = "Add source-visible page geometry systems and renderer-neutral snap anchors."
+workstream = "document"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["DOC-501"]
+requirements = ["R-MOD-002", "R-MOD-004"]
+specifications = ["03", "06"]
+acceptance = [
+  "Page/spread margins, columns, baseline/modular grids and printable guides are visible Python.",
+  "Canvas overlays and snap anchors use the same physical geometry and survive zoom changes.",
+]
+
+[[task]]
+id = "DOC-503"
+title = "Paragraph, character and object style system"
+description = "Implement typed inheritance, resolution, overrides and diagnostics for reusable styles."
+workstream = "document"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["SRC-201", "TXT-304"]
+requirements = ["R-SRC-003", "R-UI-002"]
+specifications = ["03", "04", "06"]
+acceptance = [
+  "Style inheritance resolves deterministically and cycles/conflicts produce structured diagnostics.",
+  "Inspector edits shared style or local override through explicit source plans.",
+]
+
+[[task]]
+id = "DOC-504"
+title = "Templates, components and stable instance identity"
+description = "Add reusable page/component factories, typed slots and namespaced child identity."
+workstream = "document"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "high"
+depends_on = ["DOC-501", "DOC-503"]
+requirements = ["R-SRC-004", "R-MOD-003"]
+specifications = ["02", "03"]
+acceptance = [
+  "Instance children retain identity across evaluation and unrelated collection changes.",
+  "GUI offers edit component, edit instance parameter and detach with previewed scope.",
+]
+
+[[task]]
+id = "DOC-505"
+title = "Explicit geometric constraints"
+description = "Integrate a Cassowary-style solver for authored align, pin, gap, aspect and baseline constraints."
+workstream = "document"
+stage = "10"
+milestone = "M2"
+status = "planned"
+priority = "high"
+depends_on = ["DOC-502", "SRC-202"]
+requirements = ["R-MOD-004"]
+specifications = ["03", "13"]
+acceptance = [
+  "Under-, well- and over-constrained fixtures return deterministic geometry and diagnostics.",
+  "Dragging edits a controlling constraint/value or offers an explicit detach plan.",
+]
+
+[[task]]
+id = "GUI-501"
+title = "Pages and spreads panel"
+description = "Provide virtualized thumbnails, page operations, sections, master provenance and error badges."
+workstream = "gui"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "high"
+depends_on = ["DOC-501"]
+requirements = ["R-UI-006"]
+specifications = ["06"]
+acceptance = [
+  "Pointer and keyboard workflows add, reorder, duplicate, delete and navigate pages.",
+  "Thumbnails expose last-good/stale/error and page/master provenance without becoming document truth.",
+]
+
+[[task]]
+id = "GUI-502"
+title = "Rulers, smart guides and snapping"
+description = "Deliver screen-distance-stable snapping with candidates, feedback and temporary disable/cycle controls."
+workstream = "gui"
+stage = "10"
+milestone = "M2"
+status = "planned"
+priority = "high"
+depends_on = ["DOC-502"]
+requirements = ["R-UI-007"]
+specifications = ["03", "06"]
+acceptance = [
+  "Snap priority, candidate type, measurement and resulting authored geometry are visibly reported.",
+  "Behaviour is stable across representative zoom levels and keyboard accessible.",
+]
+
+[[task]]
+id = "GUI-503"
+title = "Styles, components and tokens panels"
+description = "Expose reusable definitions, inheritance, usage, overrides and source navigation."
+workstream = "gui"
+stage = "10"
+milestone = "M2"
+status = "planned"
+priority = "high"
+depends_on = ["DOC-503", "DOC-504"]
+requirements = ["R-UI-002", "R-UI-008"]
+specifications = ["06"]
+acceptance = [
+  "Create/apply/edit/duplicate/delete actions produce visible source changes and preview dependants.",
+  "Overrides and inheritance origin are never communicated by colour alone.",
+]
+
+[[task]]
+id = "GUI-504"
+title = "Layer and object hierarchy"
+description = "Represent layers, groups, components, clips and generated collections with synchronized selection."
+workstream = "gui"
+stage = "10"
+milestone = "M2"
+status = "needs_audit"
+priority = "high"
+depends_on = ["DOC-504"]
+requirements = ["R-UI-006", "R-UI-008"]
+specifications = ["06", "12"]
+acceptance = [
+  "Visibility, lock, print and reorder operations are keyboard complete and source-backed.",
+  "Large generated collections remain collapsed/virtualized and searchable by provenance.",
+]
+
+[[task]]
+id = "GUI-505"
+title = "Story editor and flow navigation"
+description = "Provide an editorial text surface independent of page zoom with styles, overset and frame-chain status."
+workstream = "gui"
+stage = "10"
+milestone = "M2"
+status = "planned"
+priority = "high"
+depends_on = ["TXT-306", "GUI-501"]
+requirements = ["R-UI-008", "R-TXT-003"]
+specifications = ["04", "06"]
+acceptance = [
+  "Text edits remain authored content and use PyDesign composition rather than Qt page layout.",
+  "Overset and frame-chain navigation locate both source range and affected frame/page.",
+]
+
+[[task]]
+id = "GEN-501"
+title = "Generator, parameter and provenance contracts"
+description = "Add renderer-neutral generator values, typed controls, stable namespace and worker serialization."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "ready"
+priority = "critical"
+depends_on = []
+requirements = ["R-GEN-001", "R-GEN-002", "R-GEN-003"]
+specifications = ["12"]
+acceptance = [
+  "A visible Python generator returns normal semantic objects with parameter and source provenance.",
+  "Versioned worker messages contain resolved values but no Python callables or GUI objects.",
+]
+
+[[task]]
+id = "GEN-502"
+title = "Deterministic keyed random and noise services"
+description = "Provide seed-derived sequential and semantic-key-addressed randomness for editable generation."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "critical"
+depends_on = ["GEN-501"]
+requirements = ["R-GEN-002", "R-GEN-004"]
+specifications = ["12"]
+acceptance = [
+  "Repeated builds with the same manifest produce identical semantic/display hashes.",
+  "Adding/removing unrelated keyed children does not perturb existing child values.",
+]
+
+[[task]]
+id = "GEN-503"
+title = "Native explicit-context creative API"
+description = "Implement initial Processing-like vector primitives, scoped style/transforms, repetition and sampling."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "critical"
+depends_on = ["GEN-502"]
+requirements = ["R-GEN-001", "R-GEN-004"]
+specifications = ["05", "12"]
+acceptance = [
+  "Creative functions require an explicit context and return native elements without direct Qt/PDF drawing.",
+  "Grid, radial, along-path and noise fixtures pass canvas/PDF parity.",
+]
+
+[[task]]
+id = "GEN-504"
+title = "Stable repeaters and generated exceptions"
+description = "Map semantic/data keys to stable child IDs and apply visible per-child exceptions safely."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "critical"
+depends_on = ["GEN-501", "DATA-501"]
+requirements = ["R-GEN-003", "R-GEN-006", "R-DAT-002"]
+specifications = ["12"]
+acceptance = [
+  "Insert, delete and reorder retain identity for unchanged keyed records.",
+  "Duplicate/missing keys and orphaned exceptions produce structured diagnostics.",
+]
+
+[[task]]
+id = "GEN-505"
+title = "Live, frozen and baked source workflows"
+description = "Implement authored lifecycle transitions, bake-to-native transactions and reversible history."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "critical"
+depends_on = ["GEN-501", "SRC-203"]
+requirements = ["R-GEN-006", "R-GEN-007"]
+specifications = ["02", "12"]
+acceptance = [
+  "Freeze is portable authored state; deleting cache does not change frozen output.",
+  "Bake writes readable native source and undo restores the exact generator source revision.",
+]
+
+[[task]]
+id = "GEN-506"
+title = "Generator dependency and cache integration"
+description = "Extend runtime invalidation/cache keys to parameters, seeds, source, data, assets and adapters."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["GEN-502", "RUN-202"]
+requirements = ["R-GEN-005", "R-RUN-004"]
+specifications = ["08", "12"]
+acceptance = [
+  "Generator cache reuse equals a clean build across the dependency mutation matrix.",
+  "Impure or undeclared inputs disclose non-reproducibility and disable transparent reuse.",
+]
+
+[[task]]
+id = "GEN-507"
+title = "Variant generation and promotion"
+description = "Evaluate bounded seed/parameter matrices, compare results and promote one choice to source."
+workstream = "procedural"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["GEN-506", "RUN-203"]
+requirements = ["R-GEN-008", "R-GEN-009"]
+specifications = ["12"]
+acceptance = [
+  "Variants remain temporary until explicitly applied or saved and can be cancelled without source changes.",
+  "Promotion writes seed/parameters as one source/history transaction.",
+]
+
+[[task]]
+id = "GUI-506"
+title = "Procedural controls and provenance panel"
+description = "Expose generator hierarchy, parameters, seeds, dependencies, runtime and lifecycle actions."
+workstream = "gui"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "critical"
+depends_on = ["GEN-505", "GEN-506"]
+requirements = ["R-UI-010", "R-GEN-007"]
+specifications = ["06", "12"]
+acceptance = [
+  "Controls show resolved/source values and commit source transactions rather than hidden state.",
+  "Canvas child selection reveals generator, child key, active exception and controlling source.",
+]
+
+[[task]]
+id = "GUI-507"
+title = "Variant browser"
+description = "Add a virtualized cancellable seed/parameter comparison grid with locks and promotion."
+workstream = "gui"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["GEN-507", "GUI-506"]
+requirements = ["R-GEN-008", "R-UI-010"]
+specifications = ["06", "12"]
+acceptance = [
+  "The browser remains responsive under configured worker/output limits and exposes stale/error variants.",
+  "Applying a variant updates visible source once and leaves unselected variants as view/cache state.",
+]
+
+[[task]]
+id = "DATA-501"
+title = "Local structured DataSource foundation"
+description = "Add fingerprinted CSV, JSON, YAML and SQLite inputs with schema, key and refresh diagnostics."
+workstream = "data-interchange"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["RUN-202"]
+requirements = ["R-DAT-001", "R-DAT-002"]
+specifications = ["12", "13"]
+acceptance = [
+  "Data source path, parser options, schema, stable key, fingerprint and adapter version are auditable.",
+  "Missing, changed and schema-incompatible inputs preserve labelled last-good view and block stale export.",
+]
+
+[[task]]
+id = "DATA-502"
+title = "Data repeaters and component mapping"
+description = "Map filtered/sorted/grouped records to components through stable authored keys."
+workstream = "data-interchange"
+stage = "9"
+milestone = "M3"
+status = "planned"
+priority = "high"
+depends_on = ["DATA-501", "DOC-504"]
+requirements = ["R-DAT-002", "R-GEN-003"]
+specifications = ["12"]
+acceptance = [
+  "Filtering, sorting, grouping and field mapping remain visible Python.",
+  "A catalogue fixture handles data insert/delete/reorder without identity drift.",
+]
+
+[[task]]
+id = "GFX-601"
+title = "Complete native path and transform model"
+description = "Finish compound line/quadratic/cubic paths, transforms, node identity and display-list semantics."
+workstream = "graphics"
+stage = "6"
+milestone = "M4"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["PDF-405", "SRC-202"]
+requirements = ["R-GFX-001", "R-GFX-002"]
+specifications = ["03", "05"]
+acceptance = [
+  "All path segment types and compound fill rules round-trip through source, snapshot, canvas and PDF.",
+  "Node keys and provenance survive safe edits and unrelated path changes.",
+]
+
+[[task]]
+id = "GFX-602"
+title = "Curve-aware Boolean geometry adapter"
+description = "Integrate skia-pathops behind native paths and Shapely behind topology/spatial operations."
+workstream = "graphics"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "high"
+depends_on = ["GFX-601", "EXT-801"]
+requirements = ["R-GFX-001", "R-INT-001"]
+specifications = ["05", "13"]
+acceptance = [
+  "Union/intersection/difference/xor fixtures preserve curves where supported and record provenance.",
+  "Any flattened topology copy records tolerance and never replaces the canonical source curve silently.",
+]
+
+[[task]]
+id = "GFX-603"
+title = "Paint, masks, groups, blends and effect fallbacks"
+description = "Complete graphics-state operations and deterministic disclosed raster/vector fallback policy."
+workstream = "graphics"
+stage = "6"
+milestone = "M4"
+status = "needs_audit"
+priority = "high"
+depends_on = ["GFX-601", "PDF-402"]
+requirements = ["R-GFX-002", "R-GFX-003"]
+specifications = ["05", "07"]
+acceptance = [
+  "Canvas and PDF conformance fixtures cover gradients, masks, isolation and standard blends.",
+  "Every rasterized or expanded fallback reports bounds, resolution, colour space and cause.",
+]
+
+[[task]]
+id = "GFX-604"
+title = "SVG structured import and export"
+description = "Translate a supported SVG subset to/from native groups with sanitisation and fidelity reports."
+workstream = "graphics"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "normal"
+depends_on = ["GFX-601", "EXT-801"]
+requirements = ["R-GFX-003", "R-INT-002"]
+specifications = ["05", "13"]
+acceptance = [
+  "Executable/network SVG features are rejected or stripped with diagnostics.",
+  "Supported paths, transforms, paint and text policy round-trip with an explicit fidelity report.",
+]
+
+[[task]]
+id = "GUI-601"
+title = "Complete pen and direct-select toolset"
+description = "Add node insertion/deletion/conversion, handle modes, join/split/reverse and numeric editing."
+workstream = "gui"
+stage = "6"
+milestone = "M4"
+status = "needs_audit"
+priority = "high"
+depends_on = ["GFX-601"]
+requirements = ["R-GFX-001", "R-UI-004"]
+specifications = ["05", "06"]
+acceptance = [
+  "Pointer and keyboard acceptance tasks cover the full node operation set.",
+  "Generated/computed paths offer generator, exception or detach plans instead of destructive literals.",
+]
+
+[[task]]
+id = "IMG-601"
+title = "Linked image frame and Pillow foundation"
+description = "Implement fingerprinted assets, decode/metadata, frame path, crop transform, fit modes and previews."
+workstream = "images-colour"
+stage = "4"
+milestone = "M1"
+status = "needs_audit"
+priority = "high"
+depends_on = ["RUN-201"]
+requirements = ["R-IMG-001", "R-IMG-002"]
+specifications = ["05", "13"]
+acceptance = [
+  "Original image bytes remain unchanged through crop, fit, preview and export.",
+  "Missing/changed assets retain a labelled preview and block export when fidelity is not guaranteed.",
+]
+
+[[task]]
+id = "IMG-602"
+title = "Asset browser, relink and effective-DPI workflow"
+description = "Add local asset inventory, usage, duplicate detection, crop controls and source-backed relinking."
+workstream = "images-colour"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "high"
+depends_on = ["IMG-601", "GUI-504"]
+requirements = ["R-IMG-001", "R-IMG-002", "R-UI-008"]
+specifications = ["05", "06"]
+acceptance = [
+  "Panel reports profile, dimensions, effective DPI, fingerprint, status and usage locations.",
+  "Relink previews all source changes and supports undo without copying into hidden state.",
+]
+
+[[task]]
+id = "COL-601"
+title = "Typed colour, swatches and ICC conversion"
+description = "Implement process/spot/Lab/ICC values, working spaces, ColorAide authoring and LittleCMS transforms."
+workstream = "images-colour"
+stage = "6"
+milestone = "M4"
+status = "needs_audit"
+priority = "high"
+depends_on = ["IMG-601", "DOC-503"]
+requirements = ["R-COL-001", "R-COL-002"]
+specifications = ["05", "13"]
+acceptance = [
+  "Colour spaces remain distinct typed values and known-profile conversions match reference fixtures.",
+  "Swatch edits expose dependant scope; duplicate spot names with different definitions are errors.",
+]
+
+[[task]]
+id = "DATA-601"
+title = "Matplotlib structured-vector chart adapter"
+description = "Render local static charts to SVG/PDF boundary values with source spec, versions and fidelity."
+workstream = "data-interchange"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "normal"
+depends_on = ["DATA-501", "GFX-604", "EXT-801"]
+requirements = ["R-DAT-003", "R-INT-001"]
+specifications = ["12", "13"]
+acceptance = [
+  "Chart data/spec/version and output fidelity are reproducible without network access.",
+  "Chart output enters through parsed structured vector or explicit opaque placement, never a Qt-only widget.",
+]
+
+[[task]]
+id = "DATA-602"
+title = "Altair declarative chart adapter"
+description = "Add local vl-convert rendering with declared assets and deterministic structured-vector output."
+workstream = "data-interchange"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "low"
+depends_on = ["DATA-601"]
+requirements = ["R-DAT-003", "R-INT-001"]
+specifications = ["12", "13"]
+acceptance = [
+  "Declarative chart specifications remain readable Python and render with no external web resources.",
+  "Missing converter dependencies produce installation diagnostics without breaking core project opening.",
+]
+
+[[task]]
+id = "DATA-603"
+title = "Network graph and Graphviz layout adapter"
+description = "Use NetworkX/rustworkx for graph data and local Graphviz for optional automatic layout."
+workstream = "data-interchange"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "low"
+depends_on = ["GFX-604", "EXT-801"]
+requirements = ["R-DAT-003", "R-INT-002"]
+specifications = ["12", "13"]
+acceptance = [
+  "Node/edge semantic keys map to stable native objects after layout.",
+  "Executable discovery/version/failure are local, explicit and recorded in the build manifest.",
+]
+
+[[task]]
+id = "DATA-604"
+title = "Markdown and DOCX semantic content import"
+description = "Import stories/styles/media through markdown-it-py, python-docx and optional Mammoth/Pandoc paths."
+workstream = "data-interchange"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "normal"
+depends_on = ["GUI-505", "EXT-801"]
+requirements = ["R-DAT-004", "R-INT-002"]
+specifications = ["04", "13"]
+acceptance = [
+  "Imported semantic structure becomes PyDesign stories/styles rather than foreign page geometry.",
+  "Visual/round-trip losses are reported and no adapter is described as a Word-compatible layout engine.",
+]
+
+[[task]]
+id = "PDF-701"
+title = "PDF/X-4 profile and output intent"
+description = "Add selected PDF/X-4 conformance path, output profiles, page boxes and validator integration."
+workstream = "pdf-preflight"
+stage = "7"
+milestone = "M5"
+status = "needs_audit"
+priority = "critical"
+depends_on = ["COL-601", "GFX-603", "PDF-404"]
+requirements = ["R-PDF-001", "R-PDF-005"]
+specifications = ["07"]
+acceptance = [
+  "Print fixtures pass the selected external validator with recorded version and profile.",
+  "Profile-specific errors block atomic publication while eligible warnings may be explicitly waived.",
+]
+
+[[task]]
+id = "PDF-702"
+title = "Spot, overprint, separations and soft proof"
+description = "Carry print colour controls through display list, PDF resources, proof and preflight."
+workstream = "pdf-preflight"
+stage = "7"
+milestone = "M5"
+status = "planned"
+priority = "high"
+depends_on = ["PDF-701"]
+requirements = ["R-COL-001", "R-COL-002", "R-PDF-004"]
+specifications = ["05", "06", "07"]
+acceptance = [
+  "Spot names/tints and fill/stroke overprint survive PDF inspection and separation proof.",
+  "Soft proof identifies intent, paper simulation limits, gamut warnings and total-ink diagnostics.",
+]
+
+[[task]]
+id = "PDF-703"
+title = "Print preflight and package-for-output"
+description = "Complete print checks, lawful resource collection, manifest and deterministic portable rebuild."
+workstream = "pdf-preflight"
+stage = "7"
+milestone = "M5"
+status = "needs_audit"
+priority = "high"
+depends_on = ["PDF-701", "PDF-702"]
+requirements = ["R-PDF-003", "R-PDF-005", "R-LIC-001"]
+specifications = ["07", "09"]
+acceptance = [
+  "Package contains lawful required inputs, profiles, reports, versions and a tested rebuild command.",
+  "Failure injection never replaces a prior valid package or PDF with partial output.",
+]
+
+[[task]]
+id = "EXT-801"
+title = "Versioned adapter and capability contract"
+description = "Implement Specification 13 metadata, lazy discovery, compatibility, capability and fidelity boundaries."
+workstream = "extensions-packaging"
+stage = "6"
+milestone = "M4"
+status = "needs_audit"
+priority = "high"
+depends_on = ["PDF-405"]
+requirements = ["R-EXT-002", "R-INT-001", "R-INT-003"]
+specifications = ["09", "13"]
+acceptance = [
+  "Adapters declare input/output type, fidelity, deterministic/offline state, capabilities and licence.",
+  "Incompatible/missing adapters are disabled before import with actionable diagnostics.",
+]
+
+[[task]]
+id = "EXT-802"
+title = "Optional dependency groups and licence gates"
+description = "Introduce extras only for shipped adapters, with wheel/platform/offline and notice verification."
+workstream = "extensions-packaging"
+stage = "6"
+milestone = "M4"
+status = "planned"
+priority = "normal"
+depends_on = ["EXT-801"]
+requirements = ["R-INT-003", "R-LIC-001", "R-OFF-001"]
+specifications = ["09", "13"]
+acceptance = [
+  "Core installs and opens projects without optional stacks; adapter projects report exact missing extras.",
+  "Each admitted dependency has supported-version evidence and third-party licence records.",
+]
+
+[[task]]
+id = "QLT-801"
+title = "Scale and performance budgets"
+description = "Enforce interaction, evaluation, layout, rendering and large-generated-collection budgets."
+workstream = "quality"
+stage = "8"
+milestone = "M6"
+status = "needs_audit"
+priority = "high"
+depends_on = ["PDF-703", "GUI-507"]
+requirements = ["R-QLT-001", "R-GEN-009"]
+specifications = ["10", "12"]
+acceptance = [
+  "Reference-machine P95 budgets cover 32-page editorial and large procedural fixtures.",
+  "Regressions fail automated gates or produce an explicit reviewed waiver.",
+]
+
+[[task]]
+id = "QLT-802"
+title = "Accessibility and keyboard release gate"
+description = "Complete accessible canvas hierarchy, focus, announcements, scalable UI and remappable shortcuts."
+workstream = "quality"
+stage = "8"
+milestone = "M6"
+status = "needs_audit"
+priority = "high"
+depends_on = ["GUI-507", "PDF-703"]
+requirements = ["R-UI-004", "R-UI-005"]
+specifications = ["06", "10"]
+acceptance = [
+  "Published GUI acceptance tasks complete without pointer at supported scaling levels.",
+  "State, errors and generated provenance are exposed through labels/roles rather than colour alone.",
+]
+
+[[task]]
+id = "PKG-801"
+title = "Offline desktop release packaging"
+description = "Build supported-platform applications with bundled authorities, local help, licences and no first-run downloads."
+workstream = "extensions-packaging"
+stage = "8"
+milestone = "M6"
+status = "planned"
+priority = "high"
+depends_on = ["PDF-703", "EXT-802"]
+requirements = ["R-OFF-001", "R-LIC-001"]
+specifications = ["09", "10"]
+acceptance = [
+  "Clean offline machines install, open examples, author, proof and export without network access.",
+  "Packages include required notices, native components, dictionaries and local documentation.",
+]
+
+[[task]]
+id = "DOC-901"
+title = "Footnotes, sidenotes, floats and tables"
+description = "Extend editorial flow after 1.0 foundations without changing the project-format authority."
+workstream = "document"
+stage = "post-1.0"
+milestone = "post-1.0"
+status = "deferred"
+priority = "normal"
+depends_on = ["PKG-801"]
+requirements = []
+specifications = ["04", "11"]
+acceptance = [
+  "Features use the existing story, style, constraint, source and display-list contracts.",
+  "A separate baseline change defines pagination interactions before implementation.",
+]
+
+[[task]]
+id = "GEN-901"
+title = "Animation timeline and frame export"
+description = "Extend deterministic generators to time-dependent revisions and local video/vector-sequence adapters."
+workstream = "procedural"
+stage = "post-1.0"
+milestone = "post-1.0"
+status = "deferred"
+priority = "low"
+depends_on = ["PKG-801"]
+requirements = []
+specifications = ["12", "13"]
+acceptance = [
+  "Animation source, time, seed and asset dependencies remain deterministic and headless.",
+  "A future ADR defines timeline, caching and export semantics before production code.",
+]

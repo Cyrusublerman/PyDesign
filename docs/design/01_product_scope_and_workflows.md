@@ -84,6 +84,29 @@ The interface teaches through discoverable tools and generated source, but it do
 5. Literal changes commit directly; computed values show explicit edit choices.
 6. One atomic source edit, history entry and evaluation revision are produced.
 
+### Author procedurally
+
+1. Create a generator with stable ID, typed parameters and an explicit seed.
+2. Use the native explicit-context creative API to return normal shapes, paths, text, images,
+   components or repeated data records.
+3. Evaluation records generator, parameter, input and stable-child provenance in the published
+   snapshot.
+4. Adjust parameters or seed in source or the procedural controls panel; provisional variants do
+   not change source.
+5. Apply one variant, add a visible keyed exception, freeze a verified result or bake it to explicit
+   native source.
+6. Canvas and PDF consume the same generated display operations and preflight reports stale or
+   impure inputs.
+
+### Build from local data
+
+1. Declare a fingerprinted local data source, schema and stable record key.
+2. Filter, sort, group and map records to a reusable component in visible Python.
+3. Inspect schema, records, identity and refresh status in the data/procedural panels.
+4. Changed records preserve identity for unchanged keys and invalidate only affected dependants.
+5. Missing, changed or incompatible inputs retain a labelled last-good view but cannot silently
+   publish as current output.
+
 ### Draw a path
 
 1. Activate Pen with keyboard or toolbar.
@@ -127,4 +150,3 @@ The interface teaches through discoverable tools and generated source, but it do
 ## Definition of “entirely offline”
 
 After installation, all authoring, font discovery, rendering, proofing, validation, help and export functions work with network interfaces unavailable. Documentation ships locally. Dependencies are bundled or declared for offline installation. External URLs may be displayed as inert references but are never required for a build.
-

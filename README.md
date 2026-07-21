@@ -14,11 +14,14 @@ The product combines:
 
 The implementation-grade design baseline is locked. The repository contains the Stage 0/1 vertical slice, a substantial visible-source Stage 2 foundation, Stage 3 typography authority modules and the first parity-gated Stage 4 vector PDF slice. Canvas geometry, rectangle/Bézier creation and cubic control-point edits produce readable Python transactions; exact OpenType identities, fallback choices, glyph runs and story source ranges are independently auditable.
 
-Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md) and [implementation sequence](docs/design/11_implementation_sequence.md).
+Read the [complete design baseline](docs/design/README.md), [decision register](docs/design/00_decision_register.md), [requirements traceability](docs/design/requirements_traceability.md), [implementation sequence](docs/design/11_implementation_sequence.md) and [delivery roadmap](docs/roadmap/README.md).
 
 The [modularity assessment](docs/modularity_assessment.md) records current boundaries, hotspots and enforced dependency rules.
 
 See [implementation status](docs/implementation_status.md) for the exact completed/staged capability boundary.
+Baseline 1.1 adds native procedural/data authoring and library-admission contracts on top of the
+recorded Stage 0–8 implementation exits. The roadmap distinguishes existing work that needs
+conformance evidence from genuinely new generator, data and procedural-GUI work.
 
 ## Locked direction
 
@@ -122,6 +125,7 @@ ruff check .
 mypy
 pytest
 python scripts/check_architecture.py
+python scripts/check_roadmap.py
 ```
 
 On Windows, replace `/tmp/hello-layout.json` with a writable path such as

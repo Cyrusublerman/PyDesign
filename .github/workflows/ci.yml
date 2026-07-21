@@ -26,6 +26,7 @@ jobs:
       - run: mypy
       - run: pytest
       - run: python scripts/check_architecture.py
+      - run: python scripts/check_roadmap.py
       - run: python -m pydesign check examples/hello_editorial --json
       - run: python -m pydesign render-json examples/hello_editorial --output /tmp/hello-layout.json
       - run: git diff --exit-code
@@ -40,6 +41,7 @@ jobs:
       - run: python -m pip install -e .
       - run: python -m unittest discover -s tests -v
       - run: python scripts/check_architecture.py
+      - run: python scripts/check_roadmap.py
       - run: python -m pydesign check examples/hello_editorial
 
   gui-smoke:
